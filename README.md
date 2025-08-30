@@ -1,81 +1,239 @@
-# 작업 방식
-1. merge한 사람이 merge 했다고 하면 dev에서 pull 받아서 최신화 하기 (git pull upstream dev)
-2. dev브랜치에서 feat/관련 내용 브랜치 생성 (git switch dev -> git switch -c feat/관련 내용)
-3. 기능 개발 완료 후 [feat/관련 내용] 커밋 메시지 내용 형식으로 commit 및 push (git commit -m "[feat/관련 내용] 커밋 내용" -> git push origin feat/관련 내용)
-4. github 사이트 와서 pull & request 생성하기 (dev <- feat/관련 내용)
-5. 피드백 완료 후 본인이 merge 하기
-6. feat/관련 내용 브랜치 -> dev 브랜치로 이동 (git switch dev)
-7. dev브랜치에서 main으로 푸쉬 (git add . 후에 git push origin dev)
-8. main<-dev로 PR 작성
+# WelcomeKit - 웰컴키트 PWA 애플리케이션
+
+멋쟁이사자처럼 13기 웰컴키트 프로젝트의 프론트엔드 애플리케이션입니다.
+
+## 🚀 프로젝트 개요
+
+WelcomeKit은 React 기반의 Progressive Web App(PWA)으로, 사용자 인증, 프로필 관리, QR 코드 스캔, 빙고 게임 등의 기능을 제공합니다.
+
+## ✨ 주요 기능
+
+### 🔐 사용자 인증
+- 로그인/회원가입
+- JWT 토큰 기반 인증
+- 쿠키를 통한 세션 관리
+- 자동 로그인 유지
+
+### 👤 사용자 관리
+- 프로필 이미지 업로드/변경
+- 비밀번호 변경
+- 사용자 정보 조회/수정
+
+### 📱 PWA 기능
+- 홈 화면 설치
+- 오프라인 지원
+- 서비스 워커를 통한 캐싱
+- 반응형 디자인
+
+### 🎯 핵심 기능
+- QR 코드 스캔
+- 빙고 게임
+- 체크인 시스템
+- 소개 페이지
+
+## 🛠️ 기술 스택
+
+### Frontend
+- **React 18.3.1** - 사용자 인터페이스 라이브러리
+- **React Router DOM 7.2.0** - 클라이언트 사이드 라우팅
+- **Styled Components 6.1.15** - CSS-in-JS 스타일링
+- **Axios 1.8.3** - HTTP 클라이언트
+
+### PWA & 모바일
+- **Service Worker** - 오프라인 캐싱 및 백그라운드 동기화
+- **Web App Manifest** - PWA 설치 및 설정
+- **HTML5 QR Scanner** - QR 코드 스캔 기능
+
+### 상태 관리 & 인증
+- **React Context API** - 전역 상태 관리
+- **React Cookie** - 쿠키 기반 인증 토큰 관리
+
+## 📁 프로젝트 구조
+
+```
+src/
+├── components/          # 재사용 가능한 컴포넌트
+│   ├── Header.jsx      # 네비게이션 헤더
+│   ├── PageContainer.jsx # 페이지 레이아웃 컨테이너
+│   ├── Breakpoints.jsx # 반응형 디자인 브레이크포인트
+│   ├── PWAInstall.jsx  # PWA 설치 컴포넌트
+│   └── Board.jsx       # 게시판 컴포넌트
+├── pages/              # 페이지 컴포넌트
+│   ├── main.jsx        # 메인 페이지
+│   ├── login.jsx       # 로그인 페이지
+│   ├── sign.jsx        # 회원가입 페이지
+│   ├── mypage.jsx      # 마이페이지
+│   ├── ProfileImage.jsx # 프로필 이미지 관리
+│   ├── ChangePassword.jsx # 비밀번호 변경
+│   ├── check.jsx       # 체크인 페이지
+│   ├── bingo.jsx       # 빙고 게임
+│   ├── introduce.jsx   # 소개 페이지
+│   ├── qrscanner.jsx   # QR 스캔 페이지
+│   └── setting.jsx     # 설정 페이지
+├── image/              # 이미지 리소스
+├── svg/               # SVG 아이콘
+├── fonts/             # 폰트 파일
+├── App.js             # 메인 앱 컴포넌트
+├── router.jsx         # 라우팅 설정
+├── AuthContext.js     # 인증 컨텍스트
+├── axiosInstance.js   # Axios 인스턴스 설정
+├── GlobalStyles.js    # 전역 스타일
+└── index.js           # 앱 진입점
+
+public/
+├── manifest.json      # PWA 매니페스트
+├── sw.js             # 서비스 워커
+├── favicon.ico       # 파비콘
+├── logo192.png       # PWA 아이콘 (192x192)
+└── logo512.png       # PWA 아이콘 (512x512)
+```
+
+## 🚀 시작하기
+
+### 필수 요구사항
+- Node.js 18.0.0 이상
+- npm 8.0.0 이상
+
+### 설치 및 실행
+
+1. **저장소 클론**
+```bash
+git clone [repository-url]
+cd FE
+```
+
+2. **의존성 설치**
+```bash
+npm install
+```
+
+3. **개발 서버 실행**
+```bash
+npm start
+```
+
+4. **프로덕션 빌드**
+```bash
+npm run build
+```
+
+5. **테스트 실행**
+```bash
+npm test
+```
+
+## 🐳 Docker 배포
+
+### Docker 이미지 빌드
+```bash
+docker build -t welcomekit-frontend .
+```
+
+### Docker 컨테이너 실행
+```bash
+docker run -p 3000:3000 welcomekit-frontend
+```
+
+## 🔧 환경 설정
 
 
-# Getting Started with Create React App
+### PWA 설정
+- `public/manifest.json`에서 앱 정보 수정
+- `public/sw.js`에서 캐싱 전략 설정
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## 📱 PWA 설치 방법
 
-## Available Scripts
+### 모바일 브라우저
+1. Chrome/Safari에서 사이트 접속
+2. "홈 화면에 추가" 또는 "앱 설치" 선택
+3. 설치 완료 후 홈 화면에서 앱 실행
 
-In the project directory, you can run:
+### 데스크톱 브라우저
+1. Chrome에서 사이트 접속
+2. 주소창 우측의 설치 아이콘 클릭
+3. "WelcomeKit 설치" 클릭
 
-### `npm start`
+## 🎨 디자인 시스템
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 색상 팔레트
+- **Primary**: `#ff7710` (오렌지)
+- **Background**: `rgba(255, 255, 255, 0.19)` (반투명 화이트)
+- **Text**: `#ffff` (화이트)
+- **Error**: `#ff4444` (빨강)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 반응형 브레이크포인트
+- **Mobile**: `max-width: 768px`
+- **Tablet**: `max-width: 1024px`
+- **Laptop**: `max-width: 1440px`
 
-### `npm test`
+### 폰트
+- **Title**: Montserrat (Bold)
+- **Body**: Pretendard (Regular/Medium)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🔐 인증 시스템
 
-### `npm run build`
+### 토큰 관리
+- JWT Access Token을 쿠키에 저장
+- 자동 토큰 갱신 및 만료 처리
+- 보안을 위한 SameSite 설정
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 보안 기능
+- HTTPS 통신
+- XSS 방지
+- CSRF 보호
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📊 성능 최적화
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### PWA 최적화
+- 서비스 워커를 통한 오프라인 지원
+- 리소스 캐싱 및 지연 로딩
+- 이미지 최적화
 
-### `npm run eject`
+### React 최적화
+- React.memo를 통한 불필요한 리렌더링 방지
+- 코드 스플리팅
+- 번들 크기 최적화
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 🧪 테스트
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 테스트 실행
+```bash
+# 전체 테스트 실행
+npm test
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# 테스트 커버리지 확인
+npm test -- --coverage
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# 특정 테스트 파일 실행
+npm test -- --testPathPattern=ComponentName
+```
 
-## Learn More
+## 🚀 배포
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 빌드
+```bash
+npm run build
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 정적 파일 서빙
+- `build/` 폴더의 정적 파일을 웹 서버에 배포
+- Nginx, Apache, 또는 CDN 사용 가능
 
-### Code Splitting
+### 환경 변수
+- `.env` 파일을 통한 환경별 설정
+- `REACT_APP_` 접두사로 시작하는 변수 사용
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-### Analyzing the Bundle Size
+## 📄 라이선스
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
-### Making a Progressive Web App
+## 👥 팀원
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- **멋쟁이사자처럼 13기** - 
+- FE 13기 운영진 신상현, 김민석, 오승민
+- BE 13기 운영진 오현우, 박재영
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**WelcomeKit** - 멋쟁이사자처럼 13기와 함께하는 특별한 경험을 만들어보세요! 🦁✨
