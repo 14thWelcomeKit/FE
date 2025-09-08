@@ -16,8 +16,7 @@ const RouterComponent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Setting />} />
-        <Route path="/main" element={<Main />} />
+        <Route path="/" element={<Main />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/check" element={<Check />} />
         <Route path="/bingo" element={<Bingo />} />
