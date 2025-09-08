@@ -35,12 +35,13 @@ export default function Setting() {
 
   return (
     <PageContainer>
-      <ChooseButton onClick={() => gotoPage("/main")}>Main</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/")}>Main</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/check")}>Check</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/introduce")}>
         Introduce
       </ChooseButton>
       <ChooseButton onClick={() => gotoPage("/bingo")}>Bingo</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/manito")}>Manito</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/login")}>Login</ChooseButton>
     </PageContainer>
   );

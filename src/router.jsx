@@ -16,6 +16,8 @@ const RouterComponent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Main />} />
+        {/* 호환성: 과거 코드에서 /main 으로 이동하던 부분 처리 */}
+        <Route path="/main" element={<Main />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/check" element={<Check />} />
         <Route path="/bingo" element={<Bingo />} />

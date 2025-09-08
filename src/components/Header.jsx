@@ -131,7 +131,7 @@ export default function Header() {
     logout();
     console.log("로그아웃 처리됨");
     alert("로그아웃 성공!");
-    navigate("/main");
+    navigate("/");
     setIsModalOpen(false);
   };
 
@@ -157,6 +157,12 @@ export default function Header() {
             onClick={() => handleNavigate("/check")}
           >
             ATTENDANCE
+          </HeaderText>
+          <HeaderText
+            active={location.pathname === "/manito"}
+            onClick={() => handleNavigate("/manito")}
+          >
+            MANITO
           </HeaderText>
           <HeaderText
             active={location.pathname === "/bingo"}
@@ -205,6 +211,9 @@ export default function Header() {
             </HeaderText>
             <HeaderText onClick={() => handleNavigate("/check")}>
               QR 출석체크
+            </HeaderText>
+            <HeaderText onClick={() => handleNavigate("/manito")}>
+              MANITO
             </HeaderText>
             <HeaderText onClick={() => handleNavigate("/bingo")}>
               Let's BINGO

@@ -3,8 +3,10 @@ import { Cookies } from "react-cookie";
 
 const cookies = new Cookies(); // ✅ 전역에서 쿠키 인스턴스 생성
 
+const rawBase = process.env.REACT_APP_SERVER || process.env.REACT_APP_API_URL;
+
 const axiosInstance = axios.create({
-  baseURL: "https://welcomekitbe.lion.it.kr/api",
+  baseURL: rawBase,
 });
 
 // 요청 인터셉터 (Authorization 헤더 자동 추가)
@@ -21,6 +23,12 @@ axiosInstance.interceptors.request.use(
       );
     }
 
+    // 특정 엔드포인트 캐시 무효화 (배포 환경 stale 문제 방지)
+    if (config.url && config.url.includes("/manito/my")) {
+      config.headers["Cache-Control"] = "no-cache";
+      config.headers["Pragma"] = "no-cache";
+      config.headers["Expires"] = "0";
+    }
     return config;
   },
   (error) => {
