@@ -2,7 +2,7 @@ import Header from "../components/Header";
 import styled from "styled-components";
 import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../AuthContext";
 import axiosInstance from "../axiosInstance";
 import PageContainer from "../components/PageContainer";
@@ -258,7 +258,7 @@ export default function Login() {
 
       console.log("로그인 성공:", response.data);
       alert("로그인 성공!");
-      navigate("/main");
+      navigate("/");
     } catch (error) {
       console.error("로그인 실패:", error.response?.data || error.message);
       alert("로그인에 실패했습니다.");
@@ -291,7 +291,7 @@ export default function Login() {
           />
           <LoginText>PW</LoginText>
           <LoginInput
-            type="password"  // 비밀번호 입력 시 텍스트가 보이지 않게 설정
+            type="password" // 비밀번호 입력 시 텍스트가 보이지 않게 설정
             placeholder="비밀번호를 입력해주세요."
             value={password}
             onChange={(e) => setPassword(e.target.value)}

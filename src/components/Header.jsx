@@ -2,7 +2,7 @@ import styled from "styled-components";
 import { ReactComponent as TitleLogo } from "../svg/TitleLogo.svg";
 import { ReactComponent as Menu } from "../svg/Menu.svg";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "../AuthContext";
 
 const breakpoints = {

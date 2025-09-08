@@ -29,9 +29,11 @@ const QRScanner = () => {
       });
 
       setMessage(`서버 응답: ${response.data.message}`);
+      console.log(message);
     } catch (error) {
       console.error("서버 요청 실패:", error);
       setMessage("서버 요청 실패");
+      console.log(message);
     }
   };
 

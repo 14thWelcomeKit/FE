@@ -5,7 +5,6 @@ import styled from "styled-components";
 import axiosInstance from "../axiosInstance";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/Breakpoints";
-import previewImage from "../image/Logo.png";
 
 const ProfileImageContainer = styled.div`
   display: flex;
