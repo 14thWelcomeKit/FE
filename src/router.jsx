@@ -4,7 +4,6 @@ import Main from "./pages/main";
 import MyPage from "./pages/mypage";
 import Check from "./pages/check";
 import Bingo from "./pages/bingo";
-import Setting from "./pages/setting";
 import Introduce from "./pages/introduce";
 import Login from "./pages/login";
 import SignUp from "./pages/sign";

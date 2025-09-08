@@ -138,11 +138,11 @@ export default function Header() {
   return (
     <>
       <HeaderContainer>
-        <WebLogo onClick={() => handleNavigate("/main")} />
+        <WebLogo onClick={() => handleNavigate("/")} />
         <MenuContainer>
           <HeaderText
-            active={location.pathname === "/main"}
-            onClick={() => handleNavigate("/main")}
+            active={location.pathname === "/"}
+            onClick={() => handleNavigate("/")}
           >
             HOME
           </HeaderText>
