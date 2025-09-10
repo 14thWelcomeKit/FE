@@ -206,9 +206,7 @@ export default function Header() {
             <HeaderText onClick={() => handleNavigate("/check")}>
               QR 출석체크
             </HeaderText>
-            <HeaderText onClick={() => handleNavigate("/manito")}>
-              MANITO
-            </HeaderText>
+          
             <HeaderText onClick={() => handleNavigate("/bingo")}>
               Let's BINGO
             </HeaderText>
