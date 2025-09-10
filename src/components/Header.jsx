@@ -159,12 +159,6 @@ export default function Header() {
             ATTENDANCE
           </HeaderText>
           <HeaderText
-            active={location.pathname === "/manito"}
-            onClick={() => handleNavigate("/manito")}
-          >
-            MANITO
-          </HeaderText>
-          <HeaderText
             active={location.pathname === "/bingo"}
             onClick={() => handleNavigate("/bingo")}
           >
