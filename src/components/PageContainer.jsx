@@ -1,5 +1,5 @@
-import breakpoints from "./Breakpoints";
 import styled from "styled-components";
+import breakpoints from "./breakpoints";
 
 const PageContainer = styled.div`
   width: 100%;
@@ -9,7 +9,7 @@ const PageContainer = styled.div`
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background: var(--Bold-Black, #1c1b1a);
+  background: var(--gradient);
   box-sizing: border-box;
   gap: 10.69rem;
   overflow: hidden;

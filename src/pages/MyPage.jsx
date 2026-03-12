@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
 import styled from "styled-components";
-import axiosInstance from "../axiosInstance";
-import Image from "../image/Logo.png";
 import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import Image from "../images/logo.png";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../axiosInstance";
 
 const MypageContainer = styled.div`
   display: flex;
@@ -235,14 +235,13 @@ export default function MyPage() {
   const navigate = useNavigate();
   const [userdata, setUserdata] = useState({});
   const [profileImage, setProfileImage] = useState(null);
-  const [manito, setManito] = useState(null);
-  const [manitoMessage, setManitoMessage] = useState("");
-  const [manitoError, setManitoError] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [welcomeError, setWelcomeError] = useState("");
 
   useEffect(() => {
     fetchMyData();
     fetchMyProfile();
-    fetchMyManito();
+    fetchMyWelcome();
   }, []);
 
   const fetchMyData = async () => {
@@ -267,19 +266,17 @@ export default function MyPage() {
     }
   };
 
-  const fetchMyManito = async () => {
+  const fetchMyWelcome = async () => {
     try {
-      const res = await axiosInstance.get("/manito/my");
+      const res = await axiosInstance.get("/welcome/my");
       if (typeof res.data === "string") {
-        setManito(null);
-        setManitoMessage(res.data); // "아직 마니또 생성 전입니다!" 등
+        setWelcomeMessage(res.data); // "아직 마니또 생성 전입니다!" 등
       } else {
-        setManito(res.data);
-        setManitoMessage("");
+        setWelcomeMessage(res.data);
       }
-      setManitoError("");
+      setWelcomeError("");
     } catch (err) {
-      setManitoError(
+      setWelcomeError(
         err.response?.data || "마니또 정보를 불러오지 못했습니다."
       );
     }
@@ -287,7 +284,7 @@ export default function MyPage() {
 
   return (
     <>
-      <Header></Header>
+      <Header />
       <PageContainer>
         <MypageContainer>
           <MypageHeader>
@@ -298,6 +295,9 @@ export default function MyPage() {
               </MypageButton>
               <MypageButton onClick={() => navigate("/change-password")}>
                 비밀번호 변경
+              </MypageButton>
+              <MypageButton onClick={() => { }}>
+                웰컴 메시지 확인
               </MypageButton>
             </ButtonContainer>
           </MypageHeader>
@@ -312,10 +312,6 @@ export default function MyPage() {
               <MypageBox>{userdata.teamName}</MypageBox>
               <MypageText>개발트랙</MypageText>
               <MypageBox>{userdata.devPart}</MypageBox>
-              <MypageText>나의 마니또</MypageText>
-              <MypageBox>
-                {manito?.name || manitoMessage || (manitoError ? "-" : "-")}
-              </MypageBox>
             </TextBody>
           </MypageBody>
         </MypageContainer>

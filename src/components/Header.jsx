@@ -1,16 +1,10 @@
-import styled from "styled-components";
-import { ReactComponent as TitleLogo } from "../svg/TitleLogo.svg";
-import { ReactComponent as Menu } from "../svg/Menu.svg";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import styled from "styled-components";
+import breakpoints from "./breakpoints";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ReactComponent as TitleLogo } from "../images/titlelogo.svg";
+import { ReactComponent as Menu } from "../images/menu.svg";
 import { useAuth } from "../AuthContext";
-
-const breakpoints = {
-  mobile: "576px",
-  tablet: "768px",
-  laptop: "1024px",
-  desktop: "1200px",
-};
 
 const HeaderContainer = styled.div`
   display: flex;
@@ -18,7 +12,7 @@ const HeaderContainer = styled.div`
   height: 4.87rem;
   padding: 0.8125rem 2.25rem;
   align-items: center;
-  background: #1c1b1a;
+  background: var(--black);
   box-sizing: border-box;
   justify-content: space-between;
   position: relative;
@@ -64,9 +58,12 @@ const HeaderText = styled.h1`
 `;
 
 const WebLogo = styled(TitleLogo)`
+  width: 15rem;
+  height: auto;
   justify-content: flex-start;
   cursor: pointer;
 `;
+
 const AppMenu = styled(Menu)`
   width: 1.5rem;
   height: 1.5rem;
@@ -206,7 +203,7 @@ export default function Header() {
             <HeaderText onClick={() => handleNavigate("/check")}>
               QR 출석체크
             </HeaderText>
-          
+
             <HeaderText onClick={() => handleNavigate("/bingo")}>
               Let's BINGO
             </HeaderText>

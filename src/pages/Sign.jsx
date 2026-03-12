@@ -1,23 +1,30 @@
-import Header from "../components/Header";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { useAuth } from "../AuthContext";
-import axiosInstance from "../axiosInstance";
 import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-const LoginContainer = styled.div`
+const SignContainer = styled.div`
   display: flex;
   width: 29rem;
-  height: 40.56rem;
   padding: 3.75rem 2.25rem;
   flex-direction: column;
   border-radius: 1.25rem;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.19);
   backdrop-filter: blur(10px);
+
+  overflow-y: auto; /* 세로 스크롤 활성화 */
+  scrollbar-width: none; /* 파이어폭스에서 스크롤바 숨김 */
+  -ms-overflow-style: none; /* IE, Edge에서 스크롤바 숨김 */
+
+  &::-webkit-scrollbar {
+    display: none; /* 크롬, 사파리에서 스크롤바 숨김 */
+  }
+
   @media (max-width: ${breakpoints.laptop}) {
     width: 24rem;
     padding: 2.5rem;
@@ -28,7 +35,6 @@ const LoginContainer = styled.div`
     padding: 2rem;
   }
 `;
-
 const TitleText = styled.h1`
   font-family: Pretendard;
   font-size: 2rem;
@@ -37,29 +43,8 @@ const TitleText = styled.h1`
   line-height: 140%; /* 2.8rem */
   letter-spacing: -0.05rem;
   margin: 0;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   color: #ffff;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 1.5rem;
-  }
-`;
-
-const MiddleText = styled.h1`
-  font-family: Pretendard;
-  font-size: 1.25rem;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 140%; /* 1.75rem */
-  letter-spacing: -0.03125rem;
-  color: #ffff;
-  margin: 0;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 1rem;
-  }
 `;
 
 const LoginText = styled.h1`
@@ -85,7 +70,6 @@ const LoginInput = styled.input`
   margin-bottom: 0.5rem;
   background-color: rgba(255, 255, 255, 0.19);
   border-color: rgba(255, 255, 255, 0.19);
-  color: #ffff;
 
   &:focus {
     border-color: #ffff;
@@ -94,6 +78,7 @@ const LoginInput = styled.input`
 
   &::placeholder {
     color: #9d9d9d;
+    font-size: clamp(0.4rem, 0.7rem, 0.875rem);
   }
 `;
 
@@ -104,7 +89,7 @@ const ButtonContainer = styled.div`
   align-items: center;
 `;
 
-const LoginButton = styled.div`
+const SignButton = styled.div`
   display: flex;
   width: 12.375rem;
   height: 3.25rem;
@@ -129,38 +114,6 @@ const LoginButton = styled.div`
     background-color: #ff7710;
     color: #ffff;
   }
-`;
-
-const InfoContainer = styled.div`
-  height: 1.37rem;
-  display: flex;
-  flex-direction: row;
-  margin-top: 0.06rem;
-  margin-bottom: 0%.06rem;
-`;
-
-const InfoText = styled.h1`
-  font-family: Pretendard;
-  font-size: 0.875rem;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 140%; /* 1.225rem */
-  letter-spacing: -0.02188rem;
-  color: #ffff;
-  margin: 0;
-`;
-
-const SignText = styled.h1`
-  font-family: Pretendard;
-  font-size: 1rem;
-  font-style: normal;
-  font-weight: 600;
-  line-height: 140%; /* 1.4rem */
-  letter-spacing: -0.025rem;
-  margin: 0;
-  margin-left: 1rem;
-  color: #ffff;
-  cursor: pointer;
 `;
 
 const CircleContainer = styled.div`
@@ -202,11 +155,10 @@ const Circle = styled.div`
 
   transform: rotate(-75deg);
 `;
-
 const MainLogo = styled(mainlogo)`
+  position: absolute;
   width: 80%;
   height: auto;
-  position: absolute;
 `;
 
 const TextOverlay = styled.h1`
@@ -222,7 +174,6 @@ const TextOverlay = styled.h1`
     font-size: clamp(1.5rem, 4vw, 3rem);
   }
 `;
-
 const CautionText = styled.h1`
   font-family: Pretendard;
   font-size: 0.875rem;
@@ -233,36 +184,52 @@ const CautionText = styled.h1`
   color: #ff7710;
   margin-left: 2rem;
 `;
-export default function Login() {
-  const { saveToken } = useAuth();
-  const [id, setId] = useState("");
+
+export default function SignUp() {
+  const [username, setUsername] = useState("");
+  const [stunum, setStunum] = useState("");
   const [password, setPassword] = useState("");
+  const [checkpw, setCheckpw] = useState("");
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
-  const GotoSignup = () => {
-    navigate("/signup");
+  useEffect(() => {
+    if (checkpw && password !== checkpw) {
+      setError("비밀번호가 틀립니다.");
+    } else {
+      setError("");
+    }
+  }, [password, checkpw]);
+
+  const CheckMock = {
+    name: username,
+    studentNum: stunum,
+    password: password,
+    userType: "BABY_LION",
   };
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
     try {
-      const response = await axiosInstance.post("/auth/sign-in", {
-        studentNum: id,
-        password: password,
-      });
+      const response = await axios.post(
+        "https://welcomekitbe.lion.it.kr/api/user/join",
+        {
+          name: username,
+          studentNum: stunum,
+          password: password,
+          userType: "BABY_LION",
+        }
+      );
 
-      const accessToken = response.data.accessToken;
-      console.log("받은 토큰:", accessToken);
-      saveToken(accessToken);
-
-      console.log("로그인 성공:", response.data);
-      alert("로그인 성공!");
-      navigate("/");
+      console.log("회원가입 성공:", response.data);
+      alert("회원가입이 완료되었습니다!");
     } catch (error) {
-      console.error("로그인 실패:", error.response?.data || error.message);
-      alert("로그인에 실패했습니다.");
+      console.error("회원가입 실패:", error.response?.data || error.message);
+      alert("회원가입에 실패했습니다.");
+      console.log(CheckMock);
     }
+
+    navigate("/login");
   };
 
   return (
@@ -277,34 +244,37 @@ export default function Login() {
             <br />→ WORLD
           </TextOverlay>
         </CircleContainer>
-        <LoginContainer>
-          <TitleText>로그인</TitleText>
-          <MiddleText>
-            한국외국어대학교 글로벌캠퍼스 <br />
-            멋쟁이 사자처럼 대학 홈페이지입니다.
-          </MiddleText>
-          <LoginText>ID</LoginText>
+        <SignContainer>
+          <TitleText>회원가입</TitleText>
+          <LoginText>이름</LoginText>
           <LoginInput
-            placeholder="아이디를 입력해주세요."
-            value={id}
-            onChange={(e) => setId(e.target.value)}
+            placeholder="이름을 입력해주세요."
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <LoginText>학번</LoginText>
+          <LoginInput
+            placeholder="학번을 입력해주세요."
+            value={stunum}
+            onChange={(e) => setStunum(e.target.value)}
           />
           <LoginText>PW</LoginText>
           <LoginInput
-            type="password" // 비밀번호 입력 시 텍스트가 보이지 않게 설정
             placeholder="비밀번호를 입력해주세요."
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <LoginText>PW 중복확인</LoginText>
+          <LoginInput
+            placeholder="다시 한 번 비밀번호를 입력해주세요."
+            value={checkpw}
+            onChange={(e) => setCheckpw(e.target.value)}
+          />
           {error && <CautionText>{error}</CautionText>}
           <ButtonContainer>
-            <LoginButton onClick={handleLogin}>LOGIN</LoginButton>
-            <InfoContainer>
-              <InfoText>아이디가 없으신가요?</InfoText>
-              <SignText onClick={GotoSignup}>회원가입</SignText>
-            </InfoContainer>
+            <SignButton onClick={handleSubmit}>회원가입</SignButton>
           </ButtonContainer>
-        </LoginContainer>
+        </SignContainer>
       </PageContainer>
     </>
   );

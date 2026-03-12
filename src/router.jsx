@@ -1,13 +1,13 @@
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Main from "./pages/main";
-import MyPage from "./pages/mypage";
-import Check from "./pages/check";
-import Bingo from "./pages/bingo";
-import Introduce from "./pages/introduce";
-import Login from "./pages/login";
-import SignUp from "./pages/sign";
-import QRCodeScanner from "./pages/qrscanner";
+import Main from "./pages/Main";
+import MyPage from "./pages/MyPage";
+import Check from "./pages/Check";
+import Bingo from "./pages/Bingo";
+import Introduce from "./pages/Introduce";
+import Login from "./pages/Login";
+import SignUp from "./pages/Sign";
+import QRCodeScanner from "./pages/QRScanner";
 import ChangePassword from "./pages/ChangePassword";
 import ProfileImage from "./pages/ProfileImage";
 

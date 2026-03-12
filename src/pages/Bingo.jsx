@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
-import bingoImage from "../svg/bingo.svg";
+import bingoImage from "../images/bingo.svg";
 import { BsExclamationTriangle } from "react-icons/bs";
 import axiosInstance from "../axiosInstance";
-import breakpoints from "../components/Breakpoints";
-import PageContainer from "../components/PageContainer";
 
 const BingoTextContainer = styled.div`
   max-width: 37.5rem;

@@ -1,10 +1,11 @@
-import Header from "../components/Header";
+import React from "react";
 import styled from "styled-components";
-import { IoIosArrowRoundForward } from "react-icons/io";
-import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
-import { useNavigate } from "react-router-dom";
-import breakpoints from "../components/Breakpoints";
 import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { IoIosArrowRoundForward } from "react-icons/io";
+import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
+import { useNavigate } from "react-router-dom";
 
 const TextContainer = styled.div`
   display: flex;
@@ -78,8 +79,8 @@ const IntroButton = styled.div`
   transition: 0.3s;
 
   &:hover {
-    background: #ff7710;
-    border-color: #ff7710;
+    background: var(--orange);
+    border-color: var(--orange);
   }
 
   @media (max-width: ${breakpoints.mobile}) {
@@ -137,7 +138,7 @@ const Circle = styled.div`
   border-radius: 50%;
   opacity: 0.7;
   background: linear-gradient(
-    rgba(254, 88, 38, 0.75) 0%,
+    var(--orange) 0%,
     rgba(0, 0, 0, 0) 47.5%,
     #200801 100%
   );
@@ -179,7 +180,7 @@ export default function Main() {
               <br />
               멋쟁이사자처럼입니다.
             </MiddleText>
-            <MiddleText>13기 아기사자 여러분, 환영합니다!</MiddleText>
+            <MiddleText>14기 아기사자 여러분, 환영합니다!</MiddleText>
             <IntroButton onClick={() => navigate("/introduce")}>
               <ButtonText>멋사 알아보기</ButtonText>
               <Arrow />
