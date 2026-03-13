@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
+import WelcomeModal from "../components/WelcomeModal";
 
 const TextContainer = styled.div`
   display: flex;
@@ -167,13 +168,19 @@ const TextOverlay = styled.h1`
 
 export default function Main() {
   const navigate = useNavigate();
+  const [hasReadWelcome, setHasReadWelcome] = useState(false);
+
+  useEffect(() => {
+    // BE에 확인 후 수정
+    // setHasReadWelcome(user.hasReadWelcome);
+  }, []);
 
   return (
     <>
       <Header />
       <PageContainer>
         <TextContainer>
-          <TitleText>WELCOME</TitleText>
+          <TitleText>HOME</TitleText>
           <MiddleContainer>
             <MiddleText>
               한국외대 글로벌캠퍼스
@@ -196,6 +203,7 @@ export default function Main() {
           </TextOverlay>
         </CircleContainer>
       </PageContainer>
+      {!hasReadWelcome && <WelcomeModal onClose={() => setHasReadWelcome(true)} isDismiss={hasReadWelcome} />}
     </>
   );
 }

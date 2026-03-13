@@ -1,6 +1,5 @@
 import { createGlobalStyle } from "styled-components";
 
-
 const GlobalStyle = createGlobalStyle`
     :root {
         --orange: #FF6000;
@@ -10,7 +9,7 @@ const GlobalStyle = createGlobalStyle`
         --gradient: linear-gradient(to bottom, var(--black), var(--navy));
     }
 
-    @media (max-width: 500px){
+    @media (max-width: 500px) {
         .PageContainer {
             flex-direction: column;
             justify-content: center;
