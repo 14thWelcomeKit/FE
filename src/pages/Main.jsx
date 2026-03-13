@@ -7,6 +7,7 @@ import { IoIosArrowRoundForward } from "react-icons/io";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
 import WelcomeModal from "../components/WelcomeModal";
+import axiosInstance from "../axiosInstance";
 
 const TextContainer = styled.div`
   display: flex;
@@ -171,9 +172,20 @@ export default function Main() {
   const [hasReadWelcome, setHasReadWelcome] = useState(false);
 
   useEffect(() => {
-    // BE에 확인 후 수정
-    // setHasReadWelcome(user.hasReadWelcome);
+    fetchUserInfo();
   }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const res = await axiosInstance.get("/user/info");
+      if (res.data && typeof res.data.hasReadWelcome === "boolean") {
+        setHasReadWelcome(res.data.hasReadWelcome);
+      }
+    } catch (err) {
+      console.error(err);
+      // setHasReadWelcome(true);
+    }
+  };
 
   return (
     <>
