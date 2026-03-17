@@ -161,6 +161,12 @@ export default function Header() {
           >
             BINGO
           </HeaderText>
+          <HeaderText
+            active={location.pathname === "/board"}
+            onClick={() => handleNavigate("/board")}
+          >
+            BOARD
+          </HeaderText>
         </MenuContainer>
         <LoginContainer>
           {isLoggedIn ? (
@@ -181,12 +187,6 @@ export default function Header() {
           </HeaderText>
         </LoginContainer>
         <AppMenu onClick={() => setIsModalOpen(true)} />
-          <HeaderText
-            active={location.pathname === "/board"}
-            onClick={() => handleNavigate("/board")}
-          >
-            문의 게시판
-          </HeaderText>
       </HeaderContainer>
 
       {isModalOpen && (
@@ -214,7 +214,7 @@ export default function Header() {
               Let's BINGO
             </HeaderText>
             <HeaderText onClick={() => handleNavigate("/board")}>
-              문의 게시판
+              BOARD
             </HeaderText>
           </MenuModal>
         </ModalOverlay>
