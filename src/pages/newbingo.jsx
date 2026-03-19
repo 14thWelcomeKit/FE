@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import Header from "../components/Header";
 import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
+import breakpoints from "../components/breakpoints";
 import { BsExclamationTriangle } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
 
