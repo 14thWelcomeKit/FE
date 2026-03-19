@@ -1,22 +1,23 @@
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Main from "./pages/main";
-import MyPage from "./pages/mypage";
-import Check from "./pages/check";
+import Main from "./pages/Main";
+import MyPage from "./pages/MyPage";
+import Check from "./pages/Check";
 import Bingo from "./pages/newbingo";
-import Introduce from "./pages/introduce";
-import Login from "./pages/login";
-import SignUp from "./pages/sign";
-import QRCodeScanner from "./pages/qrscanner";
+import Introduce from "./pages/Introduce";
+import Login from "./pages/Login";
+import SignUp from "./pages/Sign";
+import QRCodeScanner from "./pages/QRScanner";
 import ChangePassword from "./pages/ChangePassword";
 import ProfileImage from "./pages/ProfileImage";
+import Board from "./pages/Board";
+import BoardMobile from "./pages/BoardMobile";
 
 const RouterComponent = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Main />} />
-        {/* 호환성: 과거 코드에서 /main 으로 이동하던 부분 처리 */}
         <Route path="/main" element={<Main />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/check" element={<Check />} />
@@ -27,6 +28,8 @@ const RouterComponent = () => {
         <Route path="/qrcodescanner" element={<QRCodeScanner />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/change-profile" element={<ProfileImage />} />
+        <Route path="/board" element={<Board />} />
+        <Route path="/boardmobile" element={<BoardMobile />} />
       </Routes>
     </BrowserRouter>
   );

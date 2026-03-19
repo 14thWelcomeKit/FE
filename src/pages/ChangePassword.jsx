@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
 import styled from "styled-components";
-import axiosInstance from "../axiosInstance";
 import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../axiosInstance";
 
 const ChangePasswordContainer = styled.div`
   display: flex;

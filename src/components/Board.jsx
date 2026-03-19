@@ -1,6 +1,6 @@
-import styled from "styled-components";
-import breakpoints from "../components/Breakpoints";
 import { useEffect, useState } from "react";
+import styled from "styled-components";
+import breakpoints from "../components/breakpoints";
 
 const BoardContainer = styled.div`
   width: 42rem;
@@ -177,8 +177,8 @@ export default function CheckBoard({ memberdata }) {
               {member.attendanceStatus === "LATE"
                 ? "지각"
                 : member.attendanceStatus === "ABSENT"
-                ? "결석"
-                : "상태 불명"}
+                  ? "결석"
+                  : "상태 불명"}
             </RowBox>
             <FixBox>
               <FixButton

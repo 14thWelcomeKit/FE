@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
 import styled from "styled-components";
-import axiosInstance from "../axiosInstance";
-import Image from "../image/Logo.png";
 import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import WelcomeModal from "../components/WelcomeModal";
+import Image from "../images/logo.png";
+import { useNavigate } from "react-router-dom";
+import axiosInstance from "../axiosInstance";
 
 const MypageContainer = styled.div`
   display: flex;
@@ -13,7 +14,7 @@ const MypageContainer = styled.div`
   max-width: 85.5rem;
   height: auto;
   min-height: 47.56rem;
-  padding: 3.75rem 2.25rem;
+  padding: 3.75rem;
   flex-direction: column;
   border-radius: 1.25rem;
   box-sizing: border-box;
@@ -60,10 +61,10 @@ const MypageHeader = styled.div`
 
 const MypageBody = styled.div`
   display: flex;
+  justify-content: space-between;
   width: 100%;
   height: auto;
   min-height: 32.44rem;
-  flex-direction: row;
   gap: 2rem;
 
   @media (max-width: ${breakpoints.laptop}) {
@@ -80,6 +81,7 @@ const MypageBody = styled.div`
 const TextBody = styled.div`
   display: flex;
   flex-direction: column;
+  justify-content: center;
   width: 50%;
   height: auto;
   min-height: 29.25rem;
@@ -164,7 +166,7 @@ const MypageButton = styled.div`
   align-items: center;
   border-radius: 3.125rem;
   background-color: #ffff;
-  color: #ff7710;
+  color: var(--orange);
   font-family: Pretendard;
   font-size: 1.25rem;
   font-style: normal;
@@ -174,7 +176,7 @@ const MypageButton = styled.div`
   cursor: pointer;
 
   &:hover {
-    background-color: #ff7710;
+    background-color: var(--orange);
     color: #ffff;
   }
 
@@ -235,14 +237,11 @@ export default function MyPage() {
   const navigate = useNavigate();
   const [userdata, setUserdata] = useState({});
   const [profileImage, setProfileImage] = useState(null);
-  const [manito, setManito] = useState(null);
-  const [manitoMessage, setManitoMessage] = useState("");
-  const [manitoError, setManitoError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchMyData();
     fetchMyProfile();
-    fetchMyManito();
   }, []);
 
   const fetchMyData = async () => {
@@ -267,37 +266,22 @@ export default function MyPage() {
     }
   };
 
-  const fetchMyManito = async () => {
-    try {
-      const res = await axiosInstance.get("/manito/my");
-      if (typeof res.data === "string") {
-        setManito(null);
-        setManitoMessage(res.data); // "아직 마니또 생성 전입니다!" 등
-      } else {
-        setManito(res.data);
-        setManitoMessage("");
-      }
-      setManitoError("");
-    } catch (err) {
-      setManitoError(
-        err.response?.data || "마니또 정보를 불러오지 못했습니다."
-      );
-    }
-  };
-
   return (
     <>
-      <Header></Header>
+      <Header />
       <PageContainer>
         <MypageContainer>
           <MypageHeader>
-            <HeaderText>MY Page</HeaderText>
+            <HeaderText>MY PAGE</HeaderText>
             <ButtonContainer>
               <MypageButton onClick={() => navigate("/change-profile")}>
                 프로필 이미지 변경
               </MypageButton>
               <MypageButton onClick={() => navigate("/change-password")}>
                 비밀번호 변경
+              </MypageButton>
+              <MypageButton onClick={() => setIsModalOpen(true)}>
+                웰컴 메시지 확인
               </MypageButton>
             </ButtonContainer>
           </MypageHeader>
@@ -312,14 +296,11 @@ export default function MyPage() {
               <MypageBox>{userdata.teamName}</MypageBox>
               <MypageText>개발트랙</MypageText>
               <MypageBox>{userdata.devPart}</MypageBox>
-              <MypageText>나의 마니또</MypageText>
-              <MypageBox>
-                {manito?.name || manitoMessage || (manitoError ? "-" : "-")}
-              </MypageBox>
             </TextBody>
           </MypageBody>
         </MypageContainer>
       </PageContainer>
+      {isModalOpen && <WelcomeModal onClose={() => setIsModalOpen(false)} />}
     </>
   );
 }

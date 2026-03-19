@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import breakpoints from "./Breakpoints";
+import breakpoints from "./breakpoints";
 
 const InstallButton = styled.button`
   position: fixed;
@@ -10,7 +10,7 @@ const InstallButton = styled.button`
   height: 3.5rem;
   border-radius: 50%;
   border: none;
-  background: #ff7710;
+  background: var(--orange);
   color: #ffff;
   font-size: 1.5rem;
   cursor: pointer;
@@ -71,7 +71,7 @@ const PromptText = styled.p`
 `;
 
 const PromptButton = styled.button`
-  background: #ff7710;
+  background: var(--orange);
   color: #ffff;
   border: none;
   border-radius: 0.5rem;
@@ -136,13 +136,13 @@ export default function PWAInstall() {
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    
+
     if (outcome === 'accepted') {
       console.log('PWA 설치가 수락되었습니다.');
     } else {
       console.log('PWA 설치가 거부되었습니다.');
     }
-    
+
     setDeferredPrompt(null);
     setShowInstallPrompt(false);
   };
@@ -165,7 +165,7 @@ export default function PWAInstall() {
       <InstallButton onClick={handleShowPrompt} title="앱 설치">
         📱
       </InstallButton>
-      
+
       {showInstallPrompt && (
         <InstallPrompt>
           <PromptTitle>WelcomeKit 앱 설치</PromptTitle>

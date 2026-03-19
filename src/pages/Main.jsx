@@ -1,10 +1,13 @@
-import Header from "../components/Header";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { IoIosArrowRoundForward } from "react-icons/io";
-import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
-import { useNavigate } from "react-router-dom";
-import breakpoints from "../components/Breakpoints";
 import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { IoIosArrowRoundForward } from "react-icons/io";
+import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
+import { useNavigate } from "react-router-dom";
+import WelcomeModal from "../components/WelcomeModal";
+import axiosInstance from "../axiosInstance";
 
 const TextContainer = styled.div`
   display: flex;
@@ -78,8 +81,8 @@ const IntroButton = styled.div`
   transition: 0.3s;
 
   &:hover {
-    background: #ff7710;
-    border-color: #ff7710;
+    background: var(--orange);
+    border-color: var(--orange);
   }
 
   @media (max-width: ${breakpoints.mobile}) {
@@ -137,7 +140,7 @@ const Circle = styled.div`
   border-radius: 50%;
   opacity: 0.7;
   background: linear-gradient(
-    rgba(254, 88, 38, 0.75) 0%,
+    var(--orange) 0%,
     rgba(0, 0, 0, 0) 47.5%,
     #200801 100%
   );
@@ -166,20 +169,37 @@ const TextOverlay = styled.h1`
 
 export default function Main() {
   const navigate = useNavigate();
+  const [hasReadWelcome, setHasReadWelcome] = useState(false);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const res = await axiosInstance.get("/user/info");
+      if (res.data && typeof res.data.hasReadWelcome === "boolean") {
+        setHasReadWelcome(res.data.hasReadWelcome);
+      }
+    } catch (err) {
+      console.error(err);
+      // setHasReadWelcome(true);
+    }
+  };
 
   return (
     <>
       <Header />
       <PageContainer>
         <TextContainer>
-          <TitleText>WELCOME</TitleText>
+          <TitleText>HOME</TitleText>
           <MiddleContainer>
             <MiddleText>
               한국외대 글로벌캠퍼스
               <br />
               멋쟁이사자처럼입니다.
             </MiddleText>
-            <MiddleText>13기 아기사자 여러분, 환영합니다!</MiddleText>
+            <MiddleText>14기 아기사자 여러분, 환영합니다!</MiddleText>
             <IntroButton onClick={() => navigate("/introduce")}>
               <ButtonText>멋사 알아보기</ButtonText>
               <Arrow />
@@ -195,6 +215,7 @@ export default function Main() {
           </TextOverlay>
         </CircleContainer>
       </PageContainer>
+      {!hasReadWelcome && <WelcomeModal onClose={() => setHasReadWelcome(true)} isDismiss={hasReadWelcome} />}
     </>
   );
 }

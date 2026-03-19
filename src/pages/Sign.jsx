@@ -1,12 +1,11 @@
-import Header from "../components/Header";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
-import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
-import { useState } from "react";
-import { useEffect } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import breakpoints from "../components/Breakpoints";
 import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const SignContainer = styled.div`
   display: flex;

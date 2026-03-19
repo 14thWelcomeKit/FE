@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import ReactQRScanner from "react-qr-scanner";
-import Header from "../components/Header";
-import CheckBoard from "../components/Board";
 import styled from "styled-components";
+import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import ReactQRScanner from "react-qr-scanner";
+import CheckBoard from "../components/Board";
 import { IoMdClose } from "react-icons/io";
 import axiosInstance from "../axiosInstance";
 import media from "styled-media-query";
-import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
 
 const TextContainer = styled.div`
   display: flex;
@@ -173,14 +173,14 @@ const MessageBox = styled.div`
     props.type === "success"
       ? "#d4edda"
       : props.type === "error"
-      ? "#f8d7da"
-      : "#e2e3e5"};
+        ? "#f8d7da"
+        : "#e2e3e5"};
   color: ${(props) =>
     props.type === "success"
       ? "#155724"
       : props.type === "error"
-      ? "#721c24"
-      : "#383d41"};
+        ? "#721c24"
+        : "#383d41"};
 `;
 
 export default function Check() {

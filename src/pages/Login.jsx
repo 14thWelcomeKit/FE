@@ -1,12 +1,12 @@
-import Header from "../components/Header";
-import styled from "styled-components";
-import { ReactComponent as mainlogo } from "../svg/mainlogo.svg";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import styled from "styled-components";
+import PageContainer from "../components/PageContainer";
+import breakpoints from "../components/breakpoints";
+import Header from "../components/Header";
+import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import axiosInstance from "../axiosInstance";
-import PageContainer from "../components/PageContainer";
-import breakpoints from "../components/Breakpoints";
 
 const LoginContainer = styled.div`
   display: flex;
@@ -120,13 +120,13 @@ const LoginButton = styled.div`
   font-weight: 600;
   line-height: 140%; /* 1.75rem */
   letter-spacing: -0.03125rem;
-  color: #ff7710;
+  color: var(--orange);
   margin-top: 2rem;
   margin-bottom: 2rem;
   cursor: pointer;
 
   &:hover {
-    background-color: #ff7710;
+    background-color: var(--orange);
     color: #ffff;
   }
 `;
@@ -197,7 +197,7 @@ const Circle = styled.div`
     180deg,
     rgba(28, 7, 1, 0.87) 0%,
     rgba(0, 0, 0, 0) 47.5%,
-    rgba(254, 88, 38, 0.75) 100%
+    var(--orange) 100%
   );
 
   transform: rotate(-75deg);
@@ -230,7 +230,7 @@ const CautionText = styled.h1`
   font-weight: 300;
   line-height: 140%; /* 1.225rem */
   letter-spacing: -0.02188rem;
-  color: #ff7710;
+  color: var(--orange);
   margin-left: 2rem;
 `;
 export default function Login() {
