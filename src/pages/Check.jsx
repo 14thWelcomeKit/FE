@@ -86,7 +86,7 @@ const QrButton = styled.div`
   font-weight: 500;
   line-height: 140%;
   letter-spacing: -0.02813rem;
-  color: #ff7710;
+  color: var(--orange);
   cursor: pointer;
   @media (max-width: ${breakpoints.tablet}) {
     display: none;
@@ -107,7 +107,7 @@ const CheckButton = styled.div`
   font-weight: 500;
   line-height: 140%;
   letter-spacing: -0.02813rem;
-  color: #ff7710;
+  color: var(--orange);
   cursor: pointer;
 
   @media (min-width: ${breakpoints.tablet}) {

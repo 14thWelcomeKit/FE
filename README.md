@@ -1,6 +1,6 @@
 # WelcomeKit - 웰컴키트 PWA 애플리케이션
 
-멋쟁이사자처럼 13기 웰컴키트 프로젝트의 프론트엔드 애플리케이션입니다.
+멋쟁이사자처럼 14기 웰컴키트 프로젝트의 프론트엔드 애플리케이션입니다.
 
 ## 🚀 프로젝트 개요
 
@@ -18,6 +18,7 @@ WelcomeKit은 React 기반의 Progressive Web App(PWA)으로, 사용자 인증, 
 - 프로필 이미지 업로드/변경
 - 비밀번호 변경
 - 사용자 정보 조회/수정
+- 웰컴 메시지 조회
 
 ### 📱 PWA 기능
 - 홈 화면 설치
@@ -30,6 +31,7 @@ WelcomeKit은 React 기반의 Progressive Web App(PWA)으로, 사용자 인증, 
 - 빙고 게임
 - 체크인 시스템
 - 소개 페이지
+- 익명 문의 게시판
 
 ## 🛠️ 기술 스택
 
@@ -52,40 +54,41 @@ WelcomeKit은 React 기반의 Progressive Web App(PWA)으로, 사용자 인증, 
 
 ```
 src/
-├── components/          # 재사용 가능한 컴포넌트
-│   ├── Header.jsx      # 네비게이션 헤더
-│   ├── PageContainer.jsx # 페이지 레이아웃 컨테이너
-│   ├── Breakpoints.jsx # 반응형 디자인 브레이크포인트
-│   ├── PWAInstall.jsx  # PWA 설치 컴포넌트
-│   └── Board.jsx       # 게시판 컴포넌트
-├── pages/              # 페이지 컴포넌트
-│   ├── main.jsx        # 메인 페이지
-│   ├── login.jsx       # 로그인 페이지
-│   ├── sign.jsx        # 회원가입 페이지
-│   ├── mypage.jsx      # 마이페이지
-│   ├── ProfileImage.jsx # 프로필 이미지 관리
-│   ├── ChangePassword.jsx # 비밀번호 변경
-│   ├── check.jsx       # 체크인 페이지
-│   ├── bingo.jsx       # 빙고 게임
-│   ├── introduce.jsx   # 소개 페이지
-│   ├── qrscanner.jsx   # QR 스캔 페이지
-│   └── setting.jsx     # 설정 페이지
-├── image/              # 이미지 리소스
-├── svg/               # SVG 아이콘
-├── fonts/             # 폰트 파일
-├── App.js             # 메인 앱 컴포넌트
-├── router.jsx         # 라우팅 설정
-├── AuthContext.js     # 인증 컨텍스트
-├── axiosInstance.js   # Axios 인스턴스 설정
-├── GlobalStyles.js    # 전역 스타일
-└── index.js           # 앱 진입점
+├── components/             # 재사용 가능한 컴포넌트
+│   ├── Header.jsx          # 네비게이션 헤더
+│   ├── PageContainer.jsx   # 페이지 레이아웃 컨테이너
+│   ├── Breakpoints.jsx     # 반응형 디자인 브레이크포인트
+│   ├── PWAInstall.jsx      # PWA 설치 컴포넌트
+│   ├── Board.jsx           # 게시판 컴포넌트
+│   └── WelcomeModal.jsx    # 웰컴 메시지 모달
+├── pages/                  # 페이지 컴포넌트
+│   ├── Main.jsx            # 메인 페이지
+│   ├── Introduce.jsx       # 소개 페이지
+│   ├── Login.jsx           # 로그인 페이지
+│   ├── SignUp.jsx          # 회원가입 페이지
+│   ├── MyPage.jsx          # 마이페이지
+│   ├── ProfileImage.jsx    # 프로필 이미지 관리
+│   ├── ChangePassword.jsx  # 비밀번호 변경
+│   ├── Check.jsx           # 체크인 페이지
+│   ├── QrScanner.jsx       # QR 스캔 페이지
+│   ├── Bingo.jsx           # 빙고 게임 페이지
+│   ├── Board.jsx           # 익명 문의 게시판 페이지
+│   └── Setting.jsx         # 설정 페이지
+├── images/                 # 이미지 리소스
+├── fonts/                  # 폰트 파일
+├── App.js                  # 메인 앱 컴포넌트
+├── router.jsx              # 라우팅 설정
+├── AuthContext.js          # 인증 컨텍스트
+├── axiosInstance.js        # Axios 인스턴스 설정
+├── GlobalStyles.js         # 전역 스타일
+└── index.js                # 앱 진입점
 
 public/
-├── manifest.json      # PWA 매니페스트
-├── sw.js             # 서비스 워커
-├── favicon.ico       # 파비콘
-├── logo192.png       # PWA 아이콘 (192x192)
-└── logo512.png       # PWA 아이콘 (512x512)
+├── manifest.json           # PWA 매니페스트
+├── sw.js                   # 서비스 워커
+├── favicon.ico             # 파비콘
+├── logo192.png             # PWA 아이콘 (192x192)
+└── logo512.png             # PWA 아이콘 (512x512)
 ```
 
 ## 🚀 시작하기
@@ -156,10 +159,10 @@ docker run -p 3000:3000 welcomekit-frontend
 ## 🎨 디자인 시스템
 
 ### 색상 팔레트
-- **Primary**: `#ff7710` (오렌지)
+- **Primary**: `#FF6000` (오렌지)
 - **Background**: `rgba(255, 255, 255, 0.19)` (반투명 화이트)
-- **Text**: `#ffff` (화이트)
-- **Error**: `#ff4444` (빨강)
+- **Text**: `#FFF` (화이트)
+- **Error**: `#FF4444` (빨강)
 
 ### 반응형 브레이크포인트
 - **Mobile**: `max-width: 768px`
@@ -234,6 +237,10 @@ npm run build
 - FE 13기 운영진 신상현, 김민석, 오승민
 - BE 13기 운영진 오현우, 박재영
 
+- **멋쟁이사자처럼 14기** - 
+- FE 14기 운영진 이예진, 장주연, 김다은, 강한림
+- BE 14기 운영진 김주희, 박재영, 전진수, 최예은
+
 ---
 
-**WelcomeKit** - 멋쟁이사자처럼 13기와 함께하는 특별한 경험을 만들어보세요! 🦁✨
+**WelcomeKit** - 멋쟁이사자처럼 14기와 함께하는 특별한 경험을 만들어보세요! 🦁✨

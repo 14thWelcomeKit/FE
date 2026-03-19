@@ -105,13 +105,13 @@ const SignButton = styled.div`
   font-weight: 600;
   line-height: 140%; /* 1.75rem */
   letter-spacing: -0.03125rem;
-  color: #ff7710;
+  color: var(--orange);
   margin-top: 2rem;
   margin-bottom: 2rem;
   cursor: pointer;
 
   &:hover {
-    background-color: #ff7710;
+    background-color: var(--orange);
     color: #ffff;
   }
 `;
@@ -181,7 +181,7 @@ const CautionText = styled.h1`
   font-weight: 300;
   line-height: 140%; /* 1.225rem */
   letter-spacing: -0.02188rem;
-  color: #ff7710;
+  color: var(--orange);
   margin-left: 2rem;
 `;
 

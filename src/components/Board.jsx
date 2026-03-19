@@ -114,8 +114,8 @@ const FixButton = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 1px solid #ff7710;
-  color: #ff7710;
+  border: 1px solid var(--orange);
+  color: var(--orange);
   font-family: Pretendard;
   font-size: 1rem;
   font-weight: 400;

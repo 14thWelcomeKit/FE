@@ -95,7 +95,7 @@ const UploadButton = styled.button`
   border-radius: 3.125rem;
   border: none;
   background: #ffff;
-  color: #ff7710;
+  color: var(--orange);
   font-family: Pretendard;
   font-size: 1.25rem;
   font-weight: 600;
@@ -105,7 +105,7 @@ const UploadButton = styled.button`
   justify-content: center;
 
   &:hover {
-    background: #ff7710;
+    background: var(--orange);
     color: #ffff;
   }
 
@@ -139,12 +139,12 @@ const ButtonContainer = styled.div`
 `;
 
 const SubmitButton = styled(UploadButton)`
-  background: #ff7710;
+  background: var(--orange);
   color: #ffff;
 
   &:hover {
     background: #ffff;
-    color: #ff7710;
+    color: var(--orange);
   }
 
   @media (max-width: ${breakpoints.mobile}) {

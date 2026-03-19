@@ -35,14 +35,15 @@ export default function Setting() {
 
   return (
     <PageContainer>
-      <ChooseButton onClick={() => gotoPage("/")}>Main</ChooseButton>
-      <ChooseButton onClick={() => gotoPage("/check")}>Check</ChooseButton>
-      <ChooseButton onClick={() => gotoPage("/introduce")}>
-        Introduce
-      </ChooseButton>
+      {/* 14기 업데이트 내용 확인 */}
+      <ChooseButton onClick={() => gotoPage("/introduce")}>Introduce</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/mypage")}>Mypage</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/board")}>Board</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/boardmobile")}>BoardMobile</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/bingo")}>Bingo</ChooseButton>
-      <ChooseButton onClick={() => gotoPage("/manito")}>Manito</ChooseButton>
+      {/* 연동 확인 */}
       <ChooseButton onClick={() => gotoPage("/login")}>Login</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/check")}>Check</ChooseButton>
     </PageContainer>
   );
 }

@@ -110,7 +110,7 @@ const Button = styled.button`
   border-radius: 3.125rem;
   border: none;
   background: #ffff;
-  color: #ff7710;
+  color: var(--orange);
   font-family: Pretendard;
   font-size: 1.25rem;
   font-weight: 600;
@@ -118,7 +118,7 @@ const Button = styled.button`
   margin-top: 1rem;
 
   &:hover {
-    background: #ff7710;
+    background: var(--orange);
     color: #ffff;
   }
 
