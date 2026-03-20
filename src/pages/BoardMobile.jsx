@@ -5,266 +5,184 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { BsExclamationTriangle } from "react-icons/bs";
 
-const BoardTextContainer = styled.div`
-  max-width: 37.5rem;
+const BoardContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 3rem;
+  margin-top: 2rem;
+  flex-wrap: nowrap;
+  padding: 0 6rem;
+
+  @media (max-width: ${breakpoints.desktop}) {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0 3rem;
+  }
 
   @media (max-width: ${breakpoints.tablet}) {
+    width: 85%;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 1.4rem;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    width: 85%;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+`;
+
+const BoardTextContainer = styled.div`
+  flex: 1;
+  min-width: 450px;
+  font-size: 1.4rem;
+  text-align: left;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    // 태블릿부터 상단 텍스트(문의게시판~ 운영진 답변 시간) 가운데 정렬
     max-width: 100%;
+    text-align: center;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    min-width: unset;
+    width: 100%;
+  }
+`;
+
+const BoardContainer = styled.div`
+  flex: 2;
+  width: 100%;
+  padding: 3.5rem 5rem;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.8rem 2rem;
+    gap: 1.4rem;
+    border-radius: 1.3rem;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.5rem 1.4rem;
+    gap: 1.4rem;
+    border-radius: 1.3rem;
+    box-sizing: border-box;
   }
 `;
 
 const BoardTitle = styled.h1`
   color: white;
-  margin: 0.625rem 0;
-  font-size: 6rem;
-  font-weight: bold;
-  white-space: nowrap;
-
-  @media (max-width: ${breakpoints.laptop}) {
-    font-size: 4rem;
-  }
-
-  @media (max-width: ${breakpoints.tablet}) {
-    font-size: 3rem;
-  }
+  margin: 0;
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1.12;
 
   @media (max-width: ${breakpoints.mobile}) {
-    font-size: 2.5rem;
+    font-size: 2.4rem;
   }
 `;
 
 const BoardDescription = styled.p`
-  font-family: Pretendard;
-  color: white;
+  color: #f0f0f0;
   font-size: 1.5rem;
-  margin: 0.625rem 0;
-  margin-top: 2.5rem;
-  font-weight: 500;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    font-size: 1.25rem;
-    margin-top: 1.5rem;
-  }
+  margin: 1.2rem 0 1.8rem;
+  line-height: 1.6;
 
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1rem;
-    margin-top: 1rem;
+    margin: 1rem 0 1.3rem;
   }
 `;
 
 const BoardCaution = styled.h2`
   color: #ff7710;
-  margin: 0.625rem 0;
-  margin-top: 2.5rem;
-  font-size: 2rem;
+  font-size: 1.35rem;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  margin: 1.2rem 0 0.8rem;
 
   @media (max-width: ${breakpoints.tablet}) {
-    font-size: 1.5rem;
-    margin-top: 1.5rem;
+    justify-content: center;
   }
-
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1.25rem;
     margin-top: 1rem;
+    color: var(--orange);
   }
 `;
 
 const CautionIcon = styled(BsExclamationTriangle)`
-  margin-right: 0.5rem;
-  font-size: 2rem;
-
+  font-size: 1.6rem;
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1.25rem;
+    color: var(--orange);
   }
 `;
 
 const BoardFooter = styled.p`
-  color: white;
-  margin: 0.625rem 0;
-  margin-top: 1rem;
-  font-size: 1.25rem;
-  font-family: Pretendard;
-  font-weight: lighter;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    font-size: 1rem;
-  }
-
+  color: #ddd;
+  font-size: 1.1rem;
+  line-height: 1.45;
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.875rem;
   }
 `;
 
-//Board layout
-
-const BoardContent = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 3rem;
-
-  @media (max-width: ${breakpoints.desktop}) {
-    flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-  }
-`;
-
-// Board panel
-
-const BoardContainer = styled.div`
-  max-width: 40rem;
-  width: 100%;
-  padding: 3.75rem 2.25rem;
-  background: rgba(255, 255, 255, 0.19);
-  backdrop-filter: blur(10px);
-  border-radius: 1.25rem;
-  box-sizing: border-box;
-  color: #ffff;
-  font-family: Pretendard;
-
-  @media (max-width: ${breakpoints.laptop}) {
-    max-width: 36rem;
-    padding: 3rem 2rem;
-  }
-
-  @media (max-width: ${breakpoints.tablet}) {
-    max-width: 100%;
-    padding: 2.5rem 1.75rem;
-  }
-
+const Title = styled.h2`
+  color: white;
+  font-size: 2.3rem;
+  font-weight: 700;
+  margin: 0 0 0.8rem;
   @media (max-width: ${breakpoints.mobile}) {
-    padding: 2rem 1.25rem;
-  }
-`;
-
-const PanelTitle = styled.h1`
-  font-family: Pretendard;
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #ffff;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    font-size: 1.75rem;
-  }
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 1.5rem;
+    font-size: 2rem;
   }
 `;
 
 const Notice = styled.div`
-  font-family: Pretendard;
-  font-size: 0.875rem;
-  font-weight: 300;
-  color: #ff7710;
-  margin-bottom: 1.5rem;
-
+  font-size: 1.1rem;
+  color: #ffaa44;
+  margin-bottom: 1rem;
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.8rem;
-  }
-`;
-
-const PostBox = styled.div`
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 1.25rem 0;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    padding: 1rem 0;
-  }
-`;
-
-const Nickname = styled.div`
-  font-family: Pretendard;
-  font-weight: 600;
-  font-size: 1rem;
-  color: #ffff;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 0.9rem;
-  }
-`;
-
-const PostContent = styled.div`
-  margin-top: 0.5rem;
-  font-family: Pretendard;
-  font-weight: 400;
-  font-size: 1rem;
-  color: #ffff;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 0.9rem;
-  }
-`;
-
-const Time = styled.div`
-  font-family: Pretendard;
-  font-weight: 400;
-  font-size: 0.875rem;
-  opacity: 0.7;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 0.8rem;
-  }
-`;
-
-const ButtonRow = styled.div`
-  margin-top: 0.75rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-`;
-
-const Button = styled.button`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #ffff;
-  color: #ff7710;
-  border-radius: 3.125rem;
-  font-family: Pretendard;
-  font-weight: 600;
-  font-size: 1.125rem;
-  padding: 0.75rem 2rem;
-  cursor: pointer;
-  border: none;
-
-  &:hover {
-    background-color: #ff7710;
-    color: #ffff;
-  }
-
-  @media (max-width: ${breakpoints.tablet}) {
-    font-size: 1rem;
-    padding: 0.65rem 1.5rem;
-  }
-
-  @media (max-width: ${breakpoints.mobile}) {
-    font-size: 0.875rem;
-    padding: 0.5rem 1.25rem;
+    color: var(--orange);
   }
 `;
 
 const InputArea = styled.div`
-  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 5rem;
-  padding: 0.75rem 1rem;
-  font-family: Pretendard;
-  font-size: 1rem;
-  font-weight: 400;
+  min-height: 9rem;
+  padding: 2rem 2.2rem;
+  font-size: 1.3rem;
+  line-height: 1.8;
+  border-radius: 1.6rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: white;
+  resize: vertical;
   box-sizing: border-box;
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  color: #333;
 
   &:focus {
     border-color: #ff7710;
@@ -272,38 +190,119 @@ const TextArea = styled.textarea`
   }
 
   &::placeholder {
-    color: #999;
+    color: #aaa;
   }
 
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.9rem;
     min-height: 4rem;
     padding: 0.6rem 0.75rem;
+    font-family: Pretendard;
   }
 `;
 
-const BoardText = () => (
-  <BoardTextContainer>
-    <BoardTitle>문의 게시판</BoardTitle>
-    <BoardDescription>
-      궁금하신 점이나 문의 사항을 자유롭게 남겨주세요.
-      <br />
-      운영진이 확인 후 빠르게
-      <br />
-      답변 드리겠습니다
-    </BoardDescription>
-    <BoardCaution>
-      <CautionIcon /> NOTICE!
-    </BoardCaution>
-    <BoardFooter>
-      운영진 게시글 확인 시간 안내 (10:00 ~ 22:00)
-      <br />
-      해당 시간 외 문의는 다음날 확인될 수 있습니다.
-    </BoardFooter>
-  </BoardTextContainer>
-);
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 
-//Main Component
+  button {
+    flex: 1;
+    min-width: 120px;
+    height: 4rem;
+    font-size: 1.15rem;
+  }
+  @media (max-width: ${breakpoints.mobile}) {
+    button {
+      min-width: unset;
+      height: 3rem;
+    }
+  }
+`;
+
+const Button = styled.button`
+  height: 4rem;
+  padding: 0 2.2rem;
+  border-radius: 2rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+
+  background: white;
+  color: #ff7710;
+  border: none;
+
+  &:hover {
+    background: #ff7710;
+    color: white;
+  }
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.875rem;
+    padding: 0.5rem 1.5rem;
+    color: var(--orange);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+`;
+
+const PostBox = styled.div`
+  padding: 1.6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    padding: 1.2rem 0;
+  }
+`;
+
+const Nickname = styled.div`
+  font-weight: 700;
+  font-size: 1.03rem;
+  color: #ffddaa;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.9rem;
+  }
+`;
+
+const Content = styled.div`
+  margin: 0.7rem 0 0.3rem;
+  font-size: 1.03rem;
+  line-height: 1.6;
+  color: white;
+  word-break: break-word;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.9rem;
+  }
+`;
+
+const Time = styled.div`
+  font-size: 0.78rem;
+  color: #aaa;
+  opacity: 0.85;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.5rem;
+  }
+`;
+
+const CommentArea = styled.div`
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border-left: 2.5px solid rgba(255, 119, 16, 0.3);
+`;
+
+const CenterContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
 
 export default function BoardMobile() {
   const [posts, setPosts] = useState([
@@ -312,67 +311,6 @@ export default function BoardMobile() {
       nickname: "익명",
       content: "문의드립니다.",
       time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 2,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      isBlind: false,
       comments: [],
       showCommentInput: false,
       commentText: "",
@@ -383,18 +321,15 @@ export default function BoardMobile() {
 
   const addPost = () => {
     if (!text.trim()) return;
-
     const newPost = {
       id: Date.now(),
       nickname: "익명",
       content: text,
       time: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
-      isBlind: false,
       comments: [],
       showCommentInput: false,
       commentText: "",
     };
-
     setPosts([newPost, ...posts]);
     setText("");
   };
@@ -421,14 +356,12 @@ export default function BoardMobile() {
   const addComment = (postId) => {
     const post = posts.find((p) => p.id === postId);
     if (!post.commentText.trim()) return;
-
     const newComment = {
       id: Date.now(),
       nickname: "익명",
       content: post.commentText,
       time: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
     };
-
     setPosts(
       posts.map((p) =>
         p.id === postId
@@ -459,76 +392,155 @@ export default function BoardMobile() {
       <Header />
       <PageContainer>
         <BoardContent>
-          <BoardText />
-          <BoardContainer>
-            <PanelTitle>문의 게시판</PanelTitle>
-            <Notice>운영진 게시글 확인 시간 안내 (10:00 ~ 22:00)</Notice>
+          <BoardTextContainer>
+            <BoardTitle>문의 게시판</BoardTitle>
+            <BoardDescription>
+              궁금하신 점이나 요청사항을 남겨주시면
+              <br />
+              운영진이 확인 후 최대한 빠르게
+              <br />
+              답변 드리겠습니다.
+              <br />
+              자유롭게 작성해주세요!
+            </BoardDescription>
 
-            <InputArea>
+            <BoardCaution>
+              <CautionIcon /> NOTICE!
+            </BoardCaution>
+
+            <BoardFooter>
+              답변은 아래 운영 시간 동안 제공됩니다.
+              <br />
+              운영진 답변 가능 시간 : 10:00 ~ 22:00
+            </BoardFooter>
+          </BoardTextContainer>
+
+          <BoardContainer style={{ gap: 0 }}>
+            <CenterContent style={{ marginBottom: 0, gap: "1rem" }}>
+              <Title>🦁 무엇이든 물어봐 🦁</Title>
+              <Notice>
+                🙋 문의 후 운영진의 친절한 답변을 기다려주세요. <br />
+                운영진이 해결해드릴게요!
+              </Notice>
+            </CenterContent>
+
+            <InputArea
+              style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}
+            >
               <TextArea
-                placeholder="문의 내용을 입력하세요"
+                placeholder="문의 내용을 입력하세요..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
               <ButtonRow>
-                <Button onClick={addPost}>작성</Button>
-                <Button onClick={() => setText("")}>취소</Button>
+                <Button onClick={addPost}>등록</Button>
+                <Button
+                  onClick={() => setText("")}
+                  style={{ background: "rgba(255,255,255,0.1)", color: "#ddd" }}
+                >
+                  취소
+                </Button>
               </ButtonRow>
             </InputArea>
 
-            {posts.map((post) => (
-              <PostBox key={post.id}>
-                <Nickname>{post.nickname}</Nickname>
-                <PostContent>
-                  {post.isBlind
-                    ? "관리자에 의해 블라인드 처리된 게시글입니다"
-                    : post.content}
-                </PostContent>
-                <Time>{post.time}</Time>
-                <ButtonRow>
-                  <Button onClick={() => toggleCommentInput(post.id)}>
-                    댓글
-                  </Button>
-                  <Button onClick={() => deletePost(post.id)}>삭제</Button>
-                </ButtonRow>
+            <div style={{ marginTop: "0.8rem" }}>
+              {posts.map((post) => (
+                <PostBox key={post.id}>
+                  <Nickname>{post.nickname}</Nickname>
+                  <Content>{post.content}</Content>
+                  <Time>{post.time}</Time>
 
-                {post.showCommentInput && (
-                  <InputArea>
-                    <TextArea
-                      placeholder="댓글을 입력하세요"
-                      value={post.commentText}
-                      onChange={(e) =>
-                        handleCommentChange(post.id, e.target.value)
-                      }
-                    />
-                    <ButtonRow>
-                      <Button onClick={() => addComment(post.id)}>작성</Button>
-                      <Button onClick={() => toggleCommentInput(post.id)}>
-                        취소
-                      </Button>
-                    </ButtonRow>
-                  </InputArea>
-                )}
-
-                {post.comments.map((comment) => (
-                  <PostBox
-                    key={comment.id}
-                    style={{ marginLeft: "1rem", border: "none" }}
+                  <ButtonRow
+                    style={{ marginTop: "1rem", justifyContent: "flex-start" }}
                   >
-                    <Nickname>{comment.nickname}</Nickname>
-                    <PostContent>{comment.content}</PostContent>
-                    <Time>{comment.time}</Time>
-                    <ButtonRow>
-                      <Button
-                        onClick={() => deleteComment(post.id, comment.id)}
-                      >
-                        삭제
-                      </Button>
-                    </ButtonRow>
-                  </PostBox>
-                ))}
-              </PostBox>
-            ))}
+                    <Button
+                      onClick={() => toggleCommentInput(post.id)}
+                      style={{
+                        minWidth: "unset",
+                        width: "auto",
+                        padding: "0 1.3rem",
+                      }}
+                    >
+                      댓글 {post.comments.length}
+                    </Button>
+                    <Button
+                      onClick={() => deletePost(post.id)}
+                      style={{
+                        background: "rgba(255,60,60,0.15)",
+                        color: "#ff6666",
+                      }}
+                    >
+                      삭제
+                    </Button>
+                  </ButtonRow>
+
+                  {post.showCommentInput && (
+                    <InputArea style={{ marginTop: "1.2rem" }}>
+                      <TextArea
+                        placeholder="댓글을 입력하세요..."
+                        value={post.commentText}
+                        onChange={(e) =>
+                          handleCommentChange(post.id, e.target.value)
+                        }
+                      />
+                      <ButtonRow>
+                        <Button onClick={() => addComment(post.id)}>
+                          등록
+                        </Button>
+                        <Button
+                          onClick={() => toggleCommentInput(post.id)}
+                          style={{
+                            background: "rgba(255,255,255,0.1)",
+                            color: "#ddd",
+                          }}
+                        >
+                          취소
+                        </Button>
+                      </ButtonRow>
+                    </InputArea>
+                  )}
+
+                  {post.comments.length > 0 && (
+                    <CommentArea>
+                      {post.comments.map((comment) => (
+                        <PostBox
+                          key={comment.id}
+                          style={{
+                            padding: "1.2rem 0 0.8rem",
+                            borderBottom: "none",
+                          }}
+                        >
+                          <Nickname>↳ {comment.nickname}</Nickname>
+                          <Content>{comment.content}</Content>
+                          <Time>{comment.time}</Time>
+
+                          <ButtonRow
+                            style={{
+                              marginTop: "0.6rem",
+                              justifyContent: "flex-start",
+                            }}
+                          >
+                            <Button
+                              onClick={() => deleteComment(post.id, comment.id)}
+                              style={{
+                                minWidth: "unset",
+                                width: "auto",
+                                padding: "0 1rem",
+                                fontSize: "0.9rem",
+                                background: "rgba(255,60,60,0.12)",
+                                color: "#ff7777",
+                              }}
+                            >
+                              삭제
+                            </Button>
+                          </ButtonRow>
+                        </PostBox>
+                      ))}
+                    </CommentArea>
+                  )}
+                </PostBox>
+              ))}
+            </div>
           </BoardContainer>
         </BoardContent>
       </PageContainer>
