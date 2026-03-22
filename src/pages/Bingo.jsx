@@ -56,7 +56,7 @@ const globalStatusToUiStatus = (status) => {
 };
 
 const teamBorderTypeToUiStatus = (borderType) => {
-  if (borderType === "PROCESSING_OURS" || borderType === "PROCESSING_OTHERS") {
+  if (borderType === "PROCESSING_OURS") {
     return "PENDING";
   }
 
@@ -65,6 +65,51 @@ const teamBorderTypeToUiStatus = (borderType) => {
   }
 
   return "AVAILABLE";
+};
+
+const parseRemainingSeconds = (remainingTime, uploadedAt) => {
+  if (typeof remainingTime === "number" && Number.isFinite(remainingTime)) {
+    return Math.max(0, Math.floor(remainingTime));
+  }
+
+  if (typeof remainingTime === "string") {
+    const trimmed = remainingTime.trim();
+
+    if (/^\d+$/.test(trimmed)) {
+      return Math.max(0, Number(trimmed));
+    }
+
+    const parts = trimmed.split(":").map(Number);
+
+    if (
+      parts.length === 3 &&
+      parts.every((part) => Number.isFinite(part) && part >= 0)
+    ) {
+      const [hours, minutes, seconds] = parts;
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    if (
+      parts.length === 2 &&
+      parts.every((part) => Number.isFinite(part) && part >= 0)
+    ) {
+      const [minutes, seconds] = parts;
+      return minutes * 60 + seconds;
+    }
+  }
+
+  if (uploadedAt) {
+    const uploadedTime = new Date(uploadedAt).getTime();
+
+    if (!Number.isNaN(uploadedTime)) {
+      return Math.max(
+        0,
+        Math.floor((uploadedTime + HOLD_MS - Date.now()) / 1000),
+      );
+    }
+  }
+
+  return null;
 };
 
 const formatRemainingTime = (detail, now) => {
@@ -78,25 +123,31 @@ const formatRemainingTime = (detail, now) => {
     return `${hours}:${minutes}:${seconds}`;
   }
 
+  if (detail.uploadedAt) {
+    const uploadedTime = new Date(detail.uploadedAt).getTime();
+
+    if (!Number.isNaN(uploadedTime)) {
+      const remain = Math.max(0, uploadedTime + HOLD_MS - now);
+      const hours = String(Math.floor(remain / (1000 * 60 * 60))).padStart(
+        2,
+        "0",
+      );
+      const minutes = String(
+        Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60)),
+      ).padStart(2, "0");
+      const seconds = String(
+        Math.floor((remain % (1000 * 60)) / 1000),
+      ).padStart(2, "0");
+
+      return `${hours}:${minutes}:${seconds}`;
+    }
+  }
+
   if (detail.remainingTime) {
     return detail.remainingTime;
   }
 
-  if (!detail.uploadedAt) return "12:00:00";
-
-  const uploadedTime = new Date(detail.uploadedAt).getTime();
-  const remain = Math.max(0, uploadedTime + HOLD_MS - now);
-
-  const hours = String(Math.floor(remain / (1000 * 60 * 60))).padStart(2, "0");
-  const minutes = String(
-    Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60)),
-  ).padStart(2, "0");
-  const seconds = String(Math.floor((remain % (1000 * 60)) / 1000)).padStart(
-    2,
-    "0",
-  );
-
-  return `${hours}:${minutes}:${seconds}`;
+  return "12:00:00";
 };
 
 const normalizeMyTeam = (raw) => {
@@ -118,9 +169,52 @@ const normalizeMyTeam = (raw) => {
   };
 };
 
+const getPendingTeamName = (source) => {
+  return (
+    source?.pendingTeamName ??
+    source?.processingTeamName ??
+    source?.uploadTeamName ??
+    source?.uploaderTeamName ??
+    source?.pendingTeam?.teamName ??
+    source?.pendingTeam?.name ??
+    source?.processingTeam?.teamName ??
+    source?.processingTeam?.name ??
+    source?.uploadTeam?.teamName ??
+    source?.uploadTeam?.name ??
+    source?.uploaderTeam?.teamName ??
+    source?.uploaderTeam?.name ??
+    source?.team?.teamName ??
+    source?.team?.name ??
+    source?.teamName ??
+    null
+  );
+};
+
+const getOccupiedTeamName = (source) => {
+  return (
+    source?.occupiedTeamName ??
+    source?.ownerTeamName ??
+    source?.teamName ??
+    source?.occupiedTeam?.teamName ??
+    source?.occupiedTeam?.name ??
+    source?.ownerTeam?.teamName ??
+    source?.ownerTeam?.name ??
+    source?.team?.teamName ??
+    source?.team?.name ??
+    null
+  );
+};
+
 const normalizeGlobalCell = (cell) => {
   const cellId = cell?.cellId ?? cell?.id;
   const rawStatus = cell?.status ?? cell?.cellStatus ?? cell?.state;
+  const uploadedAt =
+    cell?.uploadedAt ??
+    cell?.createdAt ??
+    cell?.processStartedAt ??
+    cell?.startedAt ??
+    null;
+  const remainingTime = cell?.remainingTime ?? null;
 
   return {
     cellId,
@@ -136,25 +230,19 @@ const normalizeGlobalCell = (cell) => {
       "",
     status: globalStatusToUiStatus(rawStatus),
     pendingTeamId: cell?.pendingTeamId ?? cell?.processingTeamId ?? null,
-    pendingTeamName:
-      cell?.pendingTeamName ??
-      cell?.processingTeamName ??
-      cell?.teamName ??
-      null,
+    pendingTeamName: getPendingTeamName(cell),
     occupiedTeamId: cell?.occupiedTeamId ?? cell?.teamId ?? null,
-    occupiedTeamName: cell?.occupiedTeamName ?? cell?.teamName ?? null,
+    occupiedTeamName: getOccupiedTeamName(cell),
     uploadedImageUrl:
       rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || cell?.imageUrl
         ? getImageUrlByCellId(cellId, cell?.imageUrl)
         : "",
-    uploadedAt:
-      cell?.uploadedAt ??
-      cell?.createdAt ??
-      cell?.processStartedAt ??
-      cell?.startedAt ??
-      null,
-    remainingTime: cell?.remainingTime ?? null,
-    remainingSeconds: cell?.remainingSeconds ?? null,
+    uploadedAt,
+    remainingTime,
+    remainingSeconds:
+      typeof cell?.remainingSeconds === "number"
+        ? cell.remainingSeconds
+        : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: null,
     isMine: false,
   };
@@ -164,6 +252,7 @@ const normalizeTeamCell = (cell, myTeamId) => {
   const cellId = cell?.cellId ?? cell?.id;
   const borderType = cell?.borderType ?? cell?.status ?? "NONE";
   const uiStatus = teamBorderTypeToUiStatus(borderType);
+  const isProcessingOthers = borderType === "PROCESSING_OTHERS";
 
   const isMine =
     borderType === "PROCESSING_OURS" ||
@@ -171,6 +260,18 @@ const normalizeTeamCell = (cell, myTeamId) => {
     cell?.isMine === true ||
     cell?.pendingTeamId === myTeamId ||
     cell?.occupiedTeamId === myTeamId;
+
+  const uploadedAt = isProcessingOthers
+    ? null
+    : (cell?.uploadedAt ??
+      cell?.createdAt ??
+      cell?.processStartedAt ??
+      cell?.startedAt ??
+      null);
+
+  const remainingTime = isProcessingOthers
+    ? null
+    : (cell?.remainingTime ?? null);
 
   return {
     cellId,
@@ -185,40 +286,43 @@ const normalizeTeamCell = (cell, myTeamId) => {
       cell?.missionContent ??
       "",
     status: uiStatus,
-    pendingTeamId:
-      borderType === "PROCESSING_OURS"
+    pendingTeamId: isProcessingOthers
+      ? null
+      : borderType === "PROCESSING_OURS"
         ? myTeamId
         : (cell?.pendingTeamId ?? cell?.processingTeamId ?? null),
-    pendingTeamName:
-      cell?.pendingTeamName ??
-      cell?.processingTeamName ??
-      cell?.teamName ??
-      null,
+    pendingTeamName: isProcessingOthers ? null : getPendingTeamName(cell),
     occupiedTeamId:
       borderType === "BLACK"
         ? myTeamId
         : (cell?.occupiedTeamId ?? cell?.teamId ?? null),
-    occupiedTeamName: cell?.occupiedTeamName ?? cell?.teamName ?? null,
+    occupiedTeamName: getOccupiedTeamName(cell),
     uploadedImageUrl:
-      borderType !== "NONE" || cell?.imageUrl
+      !isProcessingOthers && (borderType !== "NONE" || cell?.imageUrl)
         ? getImageUrlByCellId(cellId, cell?.imageUrl)
         : "",
-    uploadedAt:
-      cell?.uploadedAt ??
-      cell?.createdAt ??
-      cell?.processStartedAt ??
-      cell?.startedAt ??
-      null,
-    remainingTime: cell?.remainingTime ?? null,
-    remainingSeconds: cell?.remainingSeconds ?? null,
-    borderType,
-    isMine,
+    uploadedAt,
+    remainingTime,
+    remainingSeconds: isProcessingOthers
+      ? null
+      : typeof cell?.remainingSeconds === "number"
+        ? cell.remainingSeconds
+        : parseRemainingSeconds(remainingTime, uploadedAt),
+    borderType: isProcessingOthers ? "NONE" : borderType,
+    isMine: isProcessingOthers ? false : isMine,
   };
 };
 
 const normalizeGlobalDetail = (detail) => {
   const cellId = detail?.cellId ?? detail?.id;
   const rawStatus = detail?.status ?? detail?.cellStatus ?? detail?.state;
+  const uploadedAt =
+    detail?.uploadedAt ??
+    detail?.createdAt ??
+    detail?.processStartedAt ??
+    detail?.startedAt ??
+    null;
+  const remainingTime = detail?.remainingTime ?? detail?.remaining ?? null;
 
   return {
     cellId,
@@ -234,25 +338,19 @@ const normalizeGlobalDetail = (detail) => {
       "",
     status: globalStatusToUiStatus(rawStatus),
     pendingTeamId: detail?.pendingTeamId ?? detail?.processingTeamId ?? null,
-    pendingTeamName:
-      detail?.pendingTeamName ??
-      detail?.processingTeamName ??
-      detail?.teamName ??
-      null,
+    pendingTeamName: getPendingTeamName(detail),
     occupiedTeamId: detail?.occupiedTeamId ?? detail?.teamId ?? null,
-    occupiedTeamName: detail?.occupiedTeamName ?? detail?.teamName ?? null,
+    occupiedTeamName: getOccupiedTeamName(detail),
     uploadedImageUrl:
       rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || detail?.imageUrl
         ? getImageUrlByCellId(cellId, detail?.imageUrl)
         : "",
-    uploadedAt:
-      detail?.uploadedAt ??
-      detail?.createdAt ??
-      detail?.processStartedAt ??
-      detail?.startedAt ??
-      null,
-    remainingTime: detail?.remainingTime ?? detail?.remaining ?? null,
-    remainingSeconds: detail?.remainingSeconds ?? null,
+    uploadedAt,
+    remainingTime,
+    remainingSeconds:
+      typeof detail?.remainingSeconds === "number"
+        ? detail.remainingSeconds
+        : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: null,
     isMine: false,
   };
@@ -262,6 +360,7 @@ const normalizeTeamDetail = (detail, myTeamId) => {
   const cellId = detail?.cellId ?? detail?.id;
   const borderType = detail?.borderType ?? detail?.status ?? "NONE";
   const uiStatus = teamBorderTypeToUiStatus(borderType);
+  const isProcessingOthers = borderType === "PROCESSING_OTHERS";
 
   const isMine =
     borderType === "PROCESSING_OURS" ||
@@ -269,6 +368,18 @@ const normalizeTeamDetail = (detail, myTeamId) => {
     detail?.isMine === true ||
     detail?.pendingTeamId === myTeamId ||
     detail?.occupiedTeamId === myTeamId;
+
+  const uploadedAt = isProcessingOthers
+    ? null
+    : (detail?.uploadedAt ??
+      detail?.createdAt ??
+      detail?.processStartedAt ??
+      detail?.startedAt ??
+      null);
+
+  const remainingTime = isProcessingOthers
+    ? null
+    : (detail?.remainingTime ?? detail?.remaining ?? null);
 
   return {
     cellId,
@@ -283,34 +394,30 @@ const normalizeTeamDetail = (detail, myTeamId) => {
       detail?.missionContent ??
       "",
     status: uiStatus,
-    pendingTeamId:
-      borderType === "PROCESSING_OURS"
+    pendingTeamId: isProcessingOthers
+      ? null
+      : borderType === "PROCESSING_OURS"
         ? myTeamId
         : (detail?.pendingTeamId ?? detail?.processingTeamId ?? null),
-    pendingTeamName:
-      detail?.pendingTeamName ??
-      detail?.processingTeamName ??
-      detail?.teamName ??
-      null,
+    pendingTeamName: isProcessingOthers ? null : getPendingTeamName(detail),
     occupiedTeamId:
       borderType === "BLACK"
         ? myTeamId
         : (detail?.occupiedTeamId ?? detail?.teamId ?? null),
-    occupiedTeamName: detail?.occupiedTeamName ?? detail?.teamName ?? null,
+    occupiedTeamName: getOccupiedTeamName(detail),
     uploadedImageUrl:
-      borderType !== "NONE" || detail?.imageUrl
+      !isProcessingOthers && (borderType !== "NONE" || detail?.imageUrl)
         ? getImageUrlByCellId(cellId, detail?.imageUrl)
         : "",
-    uploadedAt:
-      detail?.uploadedAt ??
-      detail?.createdAt ??
-      detail?.processStartedAt ??
-      detail?.startedAt ??
-      null,
-    remainingTime: detail?.remainingTime ?? detail?.remaining ?? null,
-    remainingSeconds: detail?.remainingSeconds ?? null,
-    borderType,
-    isMine,
+    uploadedAt,
+    remainingTime,
+    remainingSeconds: isProcessingOthers
+      ? null
+      : typeof detail?.remainingSeconds === "number"
+        ? detail.remainingSeconds
+        : parseRemainingSeconds(remainingTime, uploadedAt),
+    borderType: isProcessingOthers ? "NONE" : borderType,
+    isMine: isProcessingOthers ? false : isMine,
   };
 };
 
@@ -480,11 +587,17 @@ function NewBingo() {
       setNow(Date.now());
 
       setSelectedDetail((prev) => {
-        if (!prev || typeof prev.remainingSeconds !== "number") return prev;
+        if (!prev) return prev;
+        if (prev.status !== "PENDING") return prev;
+
+        const nextSeconds =
+          typeof prev.remainingSeconds === "number"
+            ? Math.max(0, prev.remainingSeconds - 1)
+            : parseRemainingSeconds(prev.remainingTime, prev.uploadedAt);
 
         return {
           ...prev,
-          remainingSeconds: Math.max(0, prev.remainingSeconds - 1),
+          remainingSeconds: nextSeconds,
         };
       });
     }, 1000);
@@ -723,31 +836,6 @@ function NewBingo() {
 
               <MissionLabel>미션 내용 :</MissionLabel>
               <MissionText>{selectedDetail.missionDescription}</MissionText>
-
-              {selectedDetail.status === "PENDING" && (
-                <>
-                  <InfoText>
-                    사진 업로드 팀 :{" "}
-                    {selectedDetail.pendingTeamName ||
-                      (selectedDetail.isMine ? myTeam?.teamName : "진행 중")}
-                  </InfoText>
-                  <TimerBadge>
-                    확정까지 남은 시간 :{" "}
-                    {formatRemainingTime(selectedDetail, now)}
-                  </TimerBadge>
-                </>
-              )}
-
-              {selectedDetail.status === "OCCUPIED" && (
-                <>
-                  <InfoText>
-                    사진 업로드 팀 :{" "}
-                    {selectedDetail.occupiedTeamName ||
-                      (selectedDetail.isMine ? myTeam?.teamName : "점유 팀")}
-                  </InfoText>
-                  <SuccessBadge>점유 완료된 미션입니다.</SuccessBadge>
-                </>
-              )}
 
               {selectedDetail.uploadedImageUrl ? (
                 <PreviewImage
@@ -1069,40 +1157,6 @@ const MissionText = styled.p`
   font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
-`;
-
-const InfoText = styled.div`
-  margin-bottom: 12px;
-  color: #1c1c1c;
-  font-family: Pretendard, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const TimerBadge = styled.div`
-  width: 100%;
-  border-radius: 10px;
-  background: #f4d8d8;
-  color: #ff0000;
-  text-align: center;
-  font-family: Pretendard, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 12px 10px;
-  margin-bottom: 16px;
-`;
-
-const SuccessBadge = styled.div`
-  width: 100%;
-  border-radius: 10px;
-  background: #ffd0ca;
-  color: #d62828;
-  text-align: center;
-  font-family: Pretendard, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 12px 10px;
-  margin-bottom: 16px;
 `;
 
 const PreviewPlaceholder = styled.div`
