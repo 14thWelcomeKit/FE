@@ -158,13 +158,13 @@ export default function WelcomeModal({ onClose, isDismiss = true }) {
   };
 
   const handleDismiss = async () => {
+    if (onClose) onClose();
     try {
-      await axiosInstance.patch("/welcome/read", { hasReadWelcome: true });
+      await axiosInstance.post("/welcome/read");
     } catch (err) {
       const errMessage = err.response?.data?.message;
       console.error(errMessage);
     }
-    if (onClose) onClose();
   };
 
   return (

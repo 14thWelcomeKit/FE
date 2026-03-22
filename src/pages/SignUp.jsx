@@ -211,13 +211,13 @@ export default function SignUp() {
 
   const handleSubmit = async () => {
     try {
-      const response = await axios.post(
-        "https://welcomekitbe.lion.it.kr/api/user/join",
+      const response = await axios.post("/user/join",
         {
           name: username,
           studentNum: stunum,
           password: password,
           userType: "BABY_LION",
+          devPart: "FRONT_END",
         }
       );
 

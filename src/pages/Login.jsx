@@ -233,6 +233,7 @@ const CautionText = styled.h1`
   color: var(--orange);
   margin-left: 2rem;
 `;
+
 export default function Login() {
   const { saveToken } = useAuth();
   const [id, setId] = useState("");
@@ -247,16 +248,16 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await axiosInstance.post("/auth/sign-in", {
-        studentNum: id,
-        password: password,
-      });
+      const response = await axiosInstance.post("/auth/sign-in",
+        {
+          studentNum: id,
+          password: password,
+        }
+      );
 
       const accessToken = response.data.accessToken;
-      console.log("받은 토큰:", accessToken);
       saveToken(accessToken);
 
-      console.log("로그인 성공:", response.data);
       alert("로그인 성공!");
       navigate("/");
     } catch (error) {

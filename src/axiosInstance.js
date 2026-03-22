@@ -3,7 +3,7 @@ import { Cookies } from "react-cookie";
 
 const cookies = new Cookies(); // ✅ 전역에서 쿠키 인스턴스 생성
 
-const rawBase = process.env.REACT_APP_SERVER || process.env.REACT_APP_API_URL;
+const rawBase = process.env.REACT_APP_API_URL;
 
 const axiosInstance = axios.create({
   baseURL: rawBase,
@@ -15,7 +15,6 @@ axiosInstance.interceptors.request.use(
     const accessToken = cookies.get("accessToken"); // ✅ 전역 쿠키 인스턴스에서 가져옴
 
     if (accessToken) {
-      console.log("🔹 토큰이 정상적으로 감:", accessToken); // ✅ 디버깅용 로그 추가
       config.headers["Authorization"] = `Bearer ${accessToken}`;
     } else {
       console.warn(

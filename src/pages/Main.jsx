@@ -169,7 +169,7 @@ const TextOverlay = styled.h1`
 
 export default function Main() {
   const navigate = useNavigate();
-  const [hasReadWelcome, setHasReadWelcome] = useState(false);
+  const [hasReadWelcome, setHasReadWelcome] = useState(true);
 
   useEffect(() => {
     fetchUserInfo();
@@ -178,12 +178,11 @@ export default function Main() {
   const fetchUserInfo = async () => {
     try {
       const res = await axiosInstance.get("/user/info");
-      if (res.data && typeof res.data.hasReadWelcome === "boolean") {
-        setHasReadWelcome(res.data.hasReadWelcome);
+      if (res.data && typeof res.data.hasReadWelcome === false) {
+        setHasReadWelcome(false);
       }
     } catch (err) {
       console.error(err);
-      // setHasReadWelcome(true);
     }
   };
 
