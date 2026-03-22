@@ -5,159 +5,37 @@ import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import { BsExclamationTriangle } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
+import axiosInstance from "../axiosInstance";
 
 const HOLD_HOURS = 12;
 const HOLD_MS = HOLD_HOURS * 60 * 60 * 1000;
 
-const MOCK_TEAM_ME = {
-  teamId: 1,
-  teamName: "A팀",
+const API_BASE_URL = axiosInstance?.defaults?.baseURL || "";
+
+const unwrapResponse = (res) => {
+  if (res?.data !== undefined) return res.data;
+  return res;
 };
 
-const MOCK_MISSION_TITLES = [
-  "팀원이랑 같이 밥 먹기",
-  "교수님께 인사하기",
-  "같이 사진 찍기",
-  "학교 건물 앞 인증샷",
-  "팀원 이름 외우기",
-  "운영진 만나기",
-  "팀 구호 만들기",
-  "학과 사무실 앞 인증",
-  "팀원 칭찬하기",
-  "다 같이 손하트",
-  "새 친구 사귀기",
-  "동아리 소개 듣기",
-  "사진 포즈 맞추기",
-  "간식 같이 먹기",
-  "단체 셀카 찍기",
-  "학과 이야기하기",
-  "오늘 목표 말하기",
-  "서로 MBTI 말하기",
-  "재미있는 표정 찍기",
-  "팀워크 포즈 찍기",
-  "교내 장소 소개하기",
-  "첫인상 말하기",
-  "오늘 일정 확인하기",
-  "응원 메시지 남기기",
-  "팀별 미션 인증하기",
-];
-
-const createInitialMockCells = () =>
-  MOCK_MISSION_TITLES.map((title, index) => ({
-    cellId: index + 1,
-    missionTitle: title,
-    missionDescription: `${title} 미션을 수행한 뒤 사진을 업로드하세요.`,
-    status: "AVAILABLE", // AVAILABLE | PENDING | OCCUPIED
-    pendingTeamId: null,
-    pendingTeamName: null,
-    occupiedTeamId: null,
-    occupiedTeamName: null,
-    uploadedImageUrl: "",
-    uploadedAt: null,
-  }));
-
-let mockBingoCells = createInitialMockCells();
-
-const isBlobUrl = (url) => typeof url === "string" && url.startsWith("blob:");
-
-const safeRevokeUrl = (url) => {
-  if (isBlobUrl(url)) {
-    URL.revokeObjectURL(url);
-  }
+const getErrorMessage = (error, fallback = "요청에 실패했습니다.") => {
+  return (
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.response?.data?.detail ||
+    error?.message ||
+    fallback
+  );
 };
 
-const cleanupAllMockBlobUrls = () => {
-  mockBingoCells.forEach((cell) => {
-    safeRevokeUrl(cell.uploadedImageUrl);
-  });
-};
-
-const clearCellUploadData = (target) => {
-  safeRevokeUrl(target.uploadedImageUrl);
-
-  target.pendingTeamId = null;
-  target.pendingTeamName = null;
-  target.occupiedTeamId = null;
-  target.occupiedTeamName = null;
-  target.uploadedImageUrl = "";
-  target.uploadedAt = null;
-};
-
-const replaceCellImageUrl = (target, file) => {
-  safeRevokeUrl(target.uploadedImageUrl);
-  const nextUrl = URL.createObjectURL(file);
-  target.uploadedImageUrl = nextUrl;
-  return nextUrl;
-};
-
-const getBoard = async (type) => {
-  if (type === "global") {
-    return {
-      boardName: "전체 빙고 보드",
-      cells: [...mockBingoCells],
-    };
+const getImageUrlByCellId = (cellId, imageUrl) => {
+  if (imageUrl) {
+    if (imageUrl.startsWith("http")) return imageUrl;
+    if (imageUrl.startsWith("/")) return `${API_BASE_URL}${imageUrl}`;
+    return imageUrl;
   }
 
-  return {
-    teamId: MOCK_TEAM_ME.teamId,
-    teamName: MOCK_TEAM_ME.teamName,
-    boardName: "우리 팀 빙고 보드",
-    cells: [...mockBingoCells],
-  };
+  return `${API_BASE_URL}/v1/bingo/image/${cellId}`;
 };
-
-const getMissionDetail = async (cellId) => {
-  const cell = mockBingoCells.find((item) => item.cellId === cellId);
-  return cell ? { ...cell } : null;
-};
-
-const postMissionPhotoUpload = async ({ cellId, file }) => {
-  const target = mockBingoCells.find((item) => item.cellId === cellId);
-  if (!target) throw new Error("존재하지 않는 미션입니다.");
-
-  if (target.status === "OCCUPIED") {
-    throw new Error("이미 점유 완료된 미션입니다.");
-  }
-
-  if (target.status === "AVAILABLE") {
-    replaceCellImageUrl(target, file);
-
-    target.status = "PENDING";
-    target.pendingTeamId = MOCK_TEAM_ME.teamId;
-    target.pendingTeamName = MOCK_TEAM_ME.teamName;
-    target.uploadedAt = Date.now();
-
-    return { success: true, action: "CREATED", cell: { ...target } };
-  }
-
-  if (
-    target.status === "PENDING" &&
-    target.pendingTeamId === MOCK_TEAM_ME.teamId
-  ) {
-    replaceCellImageUrl(target, file);
-    target.uploadedAt = Date.now();
-
-    return { success: true, action: "UPDATED", cell: { ...target } };
-  }
-
-  if (
-    target.status === "PENDING" &&
-    target.pendingTeamId !== MOCK_TEAM_ME.teamId
-  ) {
-    clearCellUploadData(target);
-    target.status = "AVAILABLE";
-
-    return { success: true, action: "INVALIDATED", cell: { ...target } };
-  }
-
-  throw new Error("업로드 처리에 실패했습니다.");
-};
-
-const patchMissionPhotoUpload = async ({ cellId, file }) => {
-  return postMissionPhotoUpload({ cellId, file });
-};
-
-const getMyTeamInfo = async () => ({ ...MOCK_TEAM_ME });
 
 const getCellColor = (status) => {
   if (status === "PENDING") return "#FFF36A";
@@ -171,10 +49,44 @@ const getPanelBgColor = (status) => {
   return "#FFFFFF";
 };
 
-const formatRemainingTime = (uploadedAt, now) => {
-  if (!uploadedAt) return "12:00:00";
+const globalStatusToUiStatus = (status) => {
+  if (status === "PROCESSING") return "PENDING";
+  if (status === "OCCUPIED") return "OCCUPIED";
+  return "AVAILABLE";
+};
 
-  const remain = Math.max(0, uploadedAt + HOLD_MS - now);
+const teamBorderTypeToUiStatus = (borderType) => {
+  if (borderType === "PROCESSING_OURS" || borderType === "PROCESSING_OTHERS") {
+    return "PENDING";
+  }
+
+  if (borderType === "BLACK" || borderType === "GRAY") {
+    return "OCCUPIED";
+  }
+
+  return "AVAILABLE";
+};
+
+const formatRemainingTime = (detail, now) => {
+  if (!detail) return "12:00:00";
+
+  if (typeof detail.remainingSeconds === "number") {
+    const remain = Math.max(0, detail.remainingSeconds);
+    const hours = String(Math.floor(remain / 3600)).padStart(2, "0");
+    const minutes = String(Math.floor((remain % 3600) / 60)).padStart(2, "0");
+    const seconds = String(remain % 60).padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  if (detail.remainingTime) {
+    return detail.remainingTime;
+  }
+
+  if (!detail.uploadedAt) return "12:00:00";
+
+  const uploadedTime = new Date(detail.uploadedAt).getTime();
+  const remain = Math.max(0, uploadedTime + HOLD_MS - now);
+
   const hours = String(Math.floor(remain / (1000 * 60 * 60))).padStart(2, "0");
   const minutes = String(
     Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60)),
@@ -187,7 +99,290 @@ const formatRemainingTime = (uploadedAt, now) => {
   return `${hours}:${minutes}:${seconds}`;
 };
 
-function Bingo() {
+const normalizeMyTeam = (raw) => {
+  const data = unwrapResponse(raw);
+
+  return {
+    teamId:
+      data?.teamId ??
+      data?.id ??
+      Number(localStorage.getItem("teamId")) ??
+      Number(sessionStorage.getItem("teamId")) ??
+      null,
+    teamName:
+      data?.teamName ??
+      data?.name ??
+      localStorage.getItem("teamName") ??
+      sessionStorage.getItem("teamName") ??
+      "우리팀",
+  };
+};
+
+const normalizeGlobalCell = (cell) => {
+  const cellId = cell?.cellId ?? cell?.id;
+  const rawStatus = cell?.status ?? cell?.cellStatus ?? cell?.state;
+
+  return {
+    cellId,
+    missionTitle:
+      cell?.missionTitle ??
+      cell?.title ??
+      cell?.missionName ??
+      `미션 ${cellId}`,
+    missionDescription:
+      cell?.missionDescription ??
+      cell?.description ??
+      cell?.missionContent ??
+      "",
+    status: globalStatusToUiStatus(rawStatus),
+    pendingTeamId: cell?.pendingTeamId ?? cell?.processingTeamId ?? null,
+    pendingTeamName:
+      cell?.pendingTeamName ??
+      cell?.processingTeamName ??
+      cell?.teamName ??
+      null,
+    occupiedTeamId: cell?.occupiedTeamId ?? cell?.teamId ?? null,
+    occupiedTeamName: cell?.occupiedTeamName ?? cell?.teamName ?? null,
+    uploadedImageUrl:
+      rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || cell?.imageUrl
+        ? getImageUrlByCellId(cellId, cell?.imageUrl)
+        : "",
+    uploadedAt:
+      cell?.uploadedAt ??
+      cell?.createdAt ??
+      cell?.processStartedAt ??
+      cell?.startedAt ??
+      null,
+    remainingTime: cell?.remainingTime ?? null,
+    remainingSeconds: cell?.remainingSeconds ?? null,
+    borderType: null,
+    isMine: false,
+  };
+};
+
+const normalizeTeamCell = (cell, myTeamId) => {
+  const cellId = cell?.cellId ?? cell?.id;
+  const borderType = cell?.borderType ?? cell?.status ?? "NONE";
+  const uiStatus = teamBorderTypeToUiStatus(borderType);
+
+  const isMine =
+    borderType === "PROCESSING_OURS" ||
+    borderType === "BLACK" ||
+    cell?.isMine === true ||
+    cell?.pendingTeamId === myTeamId ||
+    cell?.occupiedTeamId === myTeamId;
+
+  return {
+    cellId,
+    missionTitle:
+      cell?.missionTitle ??
+      cell?.title ??
+      cell?.missionName ??
+      `미션 ${cellId}`,
+    missionDescription:
+      cell?.missionDescription ??
+      cell?.description ??
+      cell?.missionContent ??
+      "",
+    status: uiStatus,
+    pendingTeamId:
+      borderType === "PROCESSING_OURS"
+        ? myTeamId
+        : (cell?.pendingTeamId ?? cell?.processingTeamId ?? null),
+    pendingTeamName:
+      cell?.pendingTeamName ??
+      cell?.processingTeamName ??
+      cell?.teamName ??
+      null,
+    occupiedTeamId:
+      borderType === "BLACK"
+        ? myTeamId
+        : (cell?.occupiedTeamId ?? cell?.teamId ?? null),
+    occupiedTeamName: cell?.occupiedTeamName ?? cell?.teamName ?? null,
+    uploadedImageUrl:
+      borderType !== "NONE" || cell?.imageUrl
+        ? getImageUrlByCellId(cellId, cell?.imageUrl)
+        : "",
+    uploadedAt:
+      cell?.uploadedAt ??
+      cell?.createdAt ??
+      cell?.processStartedAt ??
+      cell?.startedAt ??
+      null,
+    remainingTime: cell?.remainingTime ?? null,
+    remainingSeconds: cell?.remainingSeconds ?? null,
+    borderType,
+    isMine,
+  };
+};
+
+const normalizeGlobalDetail = (detail) => {
+  const cellId = detail?.cellId ?? detail?.id;
+  const rawStatus = detail?.status ?? detail?.cellStatus ?? detail?.state;
+
+  return {
+    cellId,
+    missionTitle:
+      detail?.missionTitle ??
+      detail?.title ??
+      detail?.missionName ??
+      `미션 ${cellId}`,
+    missionDescription:
+      detail?.missionDescription ??
+      detail?.description ??
+      detail?.missionContent ??
+      "",
+    status: globalStatusToUiStatus(rawStatus),
+    pendingTeamId: detail?.pendingTeamId ?? detail?.processingTeamId ?? null,
+    pendingTeamName:
+      detail?.pendingTeamName ??
+      detail?.processingTeamName ??
+      detail?.teamName ??
+      null,
+    occupiedTeamId: detail?.occupiedTeamId ?? detail?.teamId ?? null,
+    occupiedTeamName: detail?.occupiedTeamName ?? detail?.teamName ?? null,
+    uploadedImageUrl:
+      rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || detail?.imageUrl
+        ? getImageUrlByCellId(cellId, detail?.imageUrl)
+        : "",
+    uploadedAt:
+      detail?.uploadedAt ??
+      detail?.createdAt ??
+      detail?.processStartedAt ??
+      detail?.startedAt ??
+      null,
+    remainingTime: detail?.remainingTime ?? detail?.remaining ?? null,
+    remainingSeconds: detail?.remainingSeconds ?? null,
+    borderType: null,
+    isMine: false,
+  };
+};
+
+const normalizeTeamDetail = (detail, myTeamId) => {
+  const cellId = detail?.cellId ?? detail?.id;
+  const borderType = detail?.borderType ?? detail?.status ?? "NONE";
+  const uiStatus = teamBorderTypeToUiStatus(borderType);
+
+  const isMine =
+    borderType === "PROCESSING_OURS" ||
+    borderType === "BLACK" ||
+    detail?.isMine === true ||
+    detail?.pendingTeamId === myTeamId ||
+    detail?.occupiedTeamId === myTeamId;
+
+  return {
+    cellId,
+    missionTitle:
+      detail?.missionTitle ??
+      detail?.title ??
+      detail?.missionName ??
+      `미션 ${cellId}`,
+    missionDescription:
+      detail?.missionDescription ??
+      detail?.description ??
+      detail?.missionContent ??
+      "",
+    status: uiStatus,
+    pendingTeamId:
+      borderType === "PROCESSING_OURS"
+        ? myTeamId
+        : (detail?.pendingTeamId ?? detail?.processingTeamId ?? null),
+    pendingTeamName:
+      detail?.pendingTeamName ??
+      detail?.processingTeamName ??
+      detail?.teamName ??
+      null,
+    occupiedTeamId:
+      borderType === "BLACK"
+        ? myTeamId
+        : (detail?.occupiedTeamId ?? detail?.teamId ?? null),
+    occupiedTeamName: detail?.occupiedTeamName ?? detail?.teamName ?? null,
+    uploadedImageUrl:
+      borderType !== "NONE" || detail?.imageUrl
+        ? getImageUrlByCellId(cellId, detail?.imageUrl)
+        : "",
+    uploadedAt:
+      detail?.uploadedAt ??
+      detail?.createdAt ??
+      detail?.processStartedAt ??
+      detail?.startedAt ??
+      null,
+    remainingTime: detail?.remainingTime ?? detail?.remaining ?? null,
+    remainingSeconds: detail?.remainingSeconds ?? null,
+    borderType,
+    isMine,
+  };
+};
+
+const extractCells = (raw) => {
+  const data = unwrapResponse(raw);
+  return Array.isArray(data) ? data : data?.cells || [];
+};
+
+async function getMyTeamInfo() {
+  try {
+    const res = await axiosInstance.get("/v1/team/me");
+    return normalizeMyTeam(res);
+  } catch (error) {
+    return normalizeMyTeam({});
+  }
+}
+
+async function getGlobalBoard() {
+  const res = await axiosInstance.get("/v1/bingo/global");
+  return extractCells(res);
+}
+
+async function getTeamBoard() {
+  const res = await axiosInstance.get("/v1/bingo/team");
+  return unwrapResponse(res);
+}
+
+async function getGlobalMissionDetail(cellId) {
+  const res = await axiosInstance.get(`/v1/bingo/global/${cellId}`);
+  return unwrapResponse(res);
+}
+
+async function getTeamMissionDetail(cellId) {
+  const res = await axiosInstance.get(`/v1/bingo/team/${cellId}`);
+  return unwrapResponse(res);
+}
+
+async function postMissionPhotoUpload({ cellId, file }) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await axiosInstance.post(
+    `/v1/bingo/team/${cellId}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return unwrapResponse(res);
+}
+
+async function patchMissionPhotoUpload({ cellId, file }) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await axiosInstance.patch(
+    `/v1/bingo/team/${cellId}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return unwrapResponse(res);
+}
+
+function NewBingo() {
   const [myTeam, setMyTeam] = useState(null);
   const [globalBoard, setGlobalBoard] = useState([]);
   const [teamBoard, setTeamBoard] = useState([]);
@@ -203,26 +398,78 @@ function Bingo() {
 
   const isMainBoard = selectedBoardType === "main";
   const isTeamBoard = selectedBoardType === "team";
+
   const isUploadDisabled =
-    !selectedDetail || selectedDetail.status === "OCCUPIED";
+    !selectedDetail ||
+    selectedDetail.status === "OCCUPIED" ||
+    (selectedDetail.status === "PENDING" &&
+      !selectedDetail.isMine &&
+      selectedDetail.borderType === "PROCESSING_OTHERS");
 
   const loadBoards = useCallback(async () => {
-    const [teamMeRes, globalRes, teamRes] = await Promise.all([
-      getMyTeamInfo(),
-      getBoard("global"),
-      getBoard("team"),
-    ]);
+    try {
+      const myTeamInfo = await getMyTeamInfo();
+      setMyTeam(myTeamInfo);
 
-    setMyTeam(teamMeRes);
-    setGlobalBoard(globalRes.cells);
-    setTeamBoard(teamRes.cells);
+      const [globalCellsRaw, teamRaw] = await Promise.all([
+        getGlobalBoard(),
+        getTeamBoard(),
+      ]);
+
+      const teamCellsRaw = Array.isArray(teamRaw)
+        ? teamRaw
+        : teamRaw?.cells || [];
+      const teamInfoFromBoard = {
+        teamId:
+          myTeamInfo?.teamId ??
+          teamRaw?.teamId ??
+          teamRaw?.id ??
+          Number(localStorage.getItem("teamId")) ??
+          Number(sessionStorage.getItem("teamId")) ??
+          null,
+        teamName:
+          myTeamInfo?.teamName ??
+          teamRaw?.teamName ??
+          teamRaw?.name ??
+          localStorage.getItem("teamName") ??
+          sessionStorage.getItem("teamName") ??
+          "우리팀",
+      };
+
+      setMyTeam(teamInfoFromBoard);
+      setGlobalBoard(globalCellsRaw.map(normalizeGlobalCell));
+      setTeamBoard(
+        teamCellsRaw.map((cell) =>
+          normalizeTeamCell(cell, teamInfoFromBoard.teamId),
+        ),
+      );
+    } catch (error) {
+      setToast(getErrorMessage(error, "빙고판 정보를 불러오지 못했습니다."));
+    }
   }, []);
 
-  const refreshSelectedDetail = useCallback(async (cellId) => {
-    if (!cellId) return;
-    const detail = await getMissionDetail(cellId);
-    setSelectedDetail(detail);
-  }, []);
+  const refreshSelectedDetail = useCallback(
+    async (cellId, boardType = selectedBoardType, teamInfo = myTeam) => {
+      if (!cellId) return;
+
+      try {
+        if (boardType === "team") {
+          const detailRaw = await getTeamMissionDetail(cellId);
+          setSelectedDetail(
+            normalizeTeamDetail(detailRaw, teamInfo?.teamId ?? null),
+          );
+        } else {
+          const detailRaw = await getGlobalMissionDetail(cellId);
+          setSelectedDetail(normalizeGlobalDetail(detailRaw));
+        }
+      } catch (error) {
+        setToast(
+          getErrorMessage(error, "미션 상세 정보를 불러오지 못했습니다."),
+        );
+      }
+    },
+    [myTeam, selectedBoardType],
+  );
 
   useEffect(() => {
     loadBoards();
@@ -231,48 +478,37 @@ function Bingo() {
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(Date.now());
+
+      setSelectedDetail((prev) => {
+        if (!prev || typeof prev.remainingSeconds !== "number") return prev;
+
+        return {
+          ...prev,
+          remainingSeconds: Math.max(0, prev.remainingSeconds - 1),
+        };
+      });
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    const tickPendingToOccupied = async () => {
-      let changed = false;
+    const timer = setInterval(async () => {
+      await loadBoards();
 
-      mockBingoCells = mockBingoCells.map((cell) => {
-        if (cell.status !== "PENDING" || !cell.uploadedAt) return cell;
-
-        const isExpired = Date.now() - cell.uploadedAt >= HOLD_MS;
-        if (!isExpired) return cell;
-
-        changed = true;
-
-        return {
-          ...cell,
-          status: "OCCUPIED",
-          occupiedTeamId: cell.pendingTeamId,
-          occupiedTeamName: cell.pendingTeamName,
-          pendingTeamId: null,
-          pendingTeamName: null,
-        };
-      });
-
-      if (changed) {
-        await loadBoards();
-
-        if (selectedCellId) {
-          await refreshSelectedDetail(selectedCellId);
-        }
+      if (selectedCellId) {
+        await refreshSelectedDetail(selectedCellId, selectedBoardType, myTeam);
       }
-    };
-
-    const timer = setInterval(() => {
-      tickPendingToOccupied();
-    }, 1000);
+    }, 10000);
 
     return () => clearInterval(timer);
-  }, [loadBoards, refreshSelectedDetail, selectedCellId]);
+  }, [
+    loadBoards,
+    refreshSelectedDetail,
+    selectedCellId,
+    selectedBoardType,
+    myTeam,
+  ]);
 
   useEffect(() => {
     if (!toast) return;
@@ -280,18 +516,10 @@ function Bingo() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  useEffect(() => {
-    return () => {
-      cleanupAllMockBlobUrls();
-    };
-  }, []);
-
   const handleOpenDetail = async (cellId, boardType) => {
     setSelectedCellId(cellId);
     setSelectedBoardType(boardType);
-
-    const detail = await getMissionDetail(cellId);
-    setSelectedDetail(detail);
+    await refreshSelectedDetail(cellId, boardType, myTeam);
   };
 
   const handleCloseDetail = () => {
@@ -312,30 +540,30 @@ function Bingo() {
     try {
       const isMyPending =
         selectedDetail.status === "PENDING" &&
-        selectedDetail.pendingTeamId === myTeam?.teamId;
+        (selectedDetail.isMine ||
+          selectedDetail.borderType === "PROCESSING_OURS" ||
+          selectedDetail.pendingTeamId === myTeam?.teamId);
 
-      const res = isMyPending
-        ? await patchMissionPhotoUpload({
-          cellId: selectedDetail.cellId,
-          file,
-        })
-        : await postMissionPhotoUpload({
-          cellId: selectedDetail.cellId,
-          file,
-        });
+      await (isMyPending
+        ? patchMissionPhotoUpload({
+            cellId: selectedDetail.cellId,
+            file,
+          })
+        : postMissionPhotoUpload({
+            cellId: selectedDetail.cellId,
+            file,
+          }));
 
-      if (res.action === "CREATED") {
-        setToast("미션 사진이 업로드되었습니다.");
-      } else if (res.action === "UPDATED") {
-        setToast("업로드한 사진이 수정되었습니다.");
-      } else if (res.action === "INVALIDATED") {
-        setToast("다른 팀도 같은 미션을 수행해 무효 처리되었습니다.");
-      }
+      setToast(
+        isMyPending
+          ? "업로드한 사진이 수정되었습니다."
+          : "미션 사진이 업로드되었습니다.",
+      );
 
       await loadBoards();
-      await refreshSelectedDetail(selectedDetail.cellId);
+      await refreshSelectedDetail(selectedDetail.cellId, "team", myTeam);
     } catch (error) {
-      setToast(error.message || "업로드에 실패했습니다.");
+      setToast(getErrorMessage(error, "업로드에 실패했습니다."));
     } finally {
       event.target.value = "";
     }
@@ -426,7 +654,7 @@ function Bingo() {
                   >
                     {(cell.status === "OCCUPIED" ||
                       cell.status === "PENDING") &&
-                      cell.uploadedImageUrl ? (
+                    cell.uploadedImageUrl ? (
                       <CardImage
                         src={cell.uploadedImageUrl}
                         alt={cell.missionTitle}
@@ -499,11 +727,13 @@ function Bingo() {
               {selectedDetail.status === "PENDING" && (
                 <>
                   <InfoText>
-                    사진 업로드 팀 : {selectedDetail.pendingTeamName}
+                    사진 업로드 팀 :{" "}
+                    {selectedDetail.pendingTeamName ||
+                      (selectedDetail.isMine ? myTeam?.teamName : "진행 중")}
                   </InfoText>
                   <TimerBadge>
                     확정까지 남은 시간 :{" "}
-                    {formatRemainingTime(selectedDetail.uploadedAt, now)}
+                    {formatRemainingTime(selectedDetail, now)}
                   </TimerBadge>
                 </>
               )}
@@ -511,7 +741,9 @@ function Bingo() {
               {selectedDetail.status === "OCCUPIED" && (
                 <>
                   <InfoText>
-                    사진 업로드 팀 : {selectedDetail.occupiedTeamName}
+                    사진 업로드 팀 :{" "}
+                    {selectedDetail.occupiedTeamName ||
+                      (selectedDetail.isMine ? myTeam?.teamName : "점유 팀")}
                   </InfoText>
                   <SuccessBadge>점유 완료된 미션입니다.</SuccessBadge>
                 </>
@@ -544,8 +776,10 @@ function Bingo() {
                     {selectedDetail.status === "OCCUPIED"
                       ? "미션 성공!"
                       : selectedDetail.status === "PENDING"
-                        ? "사진 업로드"
-                        : "미션 수행하러 가기"}
+                        ? selectedDetail.isMine
+                          ? "사진 수정하기"
+                          : "미션 진행 중"
+                        : "미션 사진 업로드"}
                   </UploadButton>
                 </>
               )}
@@ -559,7 +793,7 @@ function Bingo() {
   );
 }
 
-export default Bingo;
+export default NewBingo;
 
 const Root = styled.div`
   min-height: 100vh;
@@ -692,7 +926,7 @@ const WarningTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--orange);
+  color: #ff7710;
   font-family: Pretendard, sans-serif;
   font-size: 28px;
   font-weight: 700;
@@ -904,8 +1138,8 @@ const UploadButton = styled.button`
   border: none;
   border-radius: 10px;
   background: ${({ disabled, occupied }) =>
-    disabled ? (occupied ? "#ff9f1c" : "#d0d0d0") : "#a9c3ee"};
-  color: #ffffff;
+    disabled ? (occupied ? "#ff9f1c" : "#d0d0d0") : "#a7c6f9"};
+  color: #000000;
   font-family: Pretendard, sans-serif;
   font-size: 14px;
   font-weight: 700;
