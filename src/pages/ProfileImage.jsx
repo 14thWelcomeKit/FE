@@ -3,6 +3,7 @@ import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
+import Image from "../images/logo.png";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../axiosInstance";
 
@@ -235,7 +236,7 @@ export default function ProfileImage() {
               {previewImage ? (
                 <PreviewImage src={previewImage} alt="프로필 미리보기" />
               ) : (
-                <PreviewImage src={previewImage} alt="기본 프로필" />
+                <PreviewImage src={Image} alt="기본 프로필" />
               )}
             </ImagePreview>
             <FileInput

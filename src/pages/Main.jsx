@@ -178,7 +178,7 @@ export default function Main() {
   const fetchUserInfo = async () => {
     try {
       const res = await axiosInstance.get("/user/info");
-      if (res.data && typeof res.data.hasReadWelcome === false) {
+      if (res.data && res.data.hasReadWelcome === false) {
         setHasReadWelcome(false);
       }
     } catch (err) {

@@ -11,7 +11,6 @@ import axiosInstance from "../axiosInstance";
 const LoginContainer = styled.div`
   display: flex;
   width: 29rem;
-  height: 40.56rem;
   padding: 3.75rem 2.25rem;
   flex-direction: column;
   border-radius: 1.25rem;
@@ -131,37 +130,38 @@ const LoginButton = styled.div`
   }
 `;
 
-const InfoContainer = styled.div`
-  height: 1.37rem;
-  display: flex;
-  flex-direction: row;
-  margin-top: 0.06rem;
-  margin-bottom: 0%.06rem;
-`;
+// 정해진 인원만 사용 가능 → 회원가입 X
+// const InfoContainer = styled.div`
+//   height: 1.37rem;
+//   display: flex;
+//   flex-direction: row;
+//   margin-top: 0.06rem;
+//   margin-bottom: 0%.06rem;
+// `;
 
-const InfoText = styled.h1`
-  font-family: Pretendard;
-  font-size: 0.875rem;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 140%; /* 1.225rem */
-  letter-spacing: -0.02188rem;
-  color: #ffff;
-  margin: 0;
-`;
+// const InfoText = styled.h1`
+//   font-family: Pretendard;
+//   font-size: 0.875rem;
+//   font-style: normal;
+//   font-weight: 400;
+//   line-height: 140%; /* 1.225rem */
+//   letter-spacing: -0.02188rem;
+//   color: #ffff;
+//   margin: 0;
+// `;
 
-const SignText = styled.h1`
-  font-family: Pretendard;
-  font-size: 1rem;
-  font-style: normal;
-  font-weight: 600;
-  line-height: 140%; /* 1.4rem */
-  letter-spacing: -0.025rem;
-  margin: 0;
-  margin-left: 1rem;
-  color: #ffff;
-  cursor: pointer;
-`;
+// const SignText = styled.h1`
+//   font-family: Pretendard;
+//   font-size: 1rem;
+//   font-style: normal;
+//   font-weight: 600;
+//   line-height: 140%; /* 1.4rem */
+//   letter-spacing: -0.025rem;
+//   margin: 0;
+//   margin-left: 1rem;
+//   color: #ffff;
+//   cursor: pointer;
+// `;
 
 const CircleContainer = styled.div`
   display: flex;
@@ -187,6 +187,7 @@ const CircleContainer = styled.div`
     height: min(75vw, 300px);
   }
 `;
+
 const Circle = styled.div`
   position: absolute;
   width: 100%;
@@ -242,9 +243,11 @@ export default function Login() {
 
   const navigate = useNavigate();
 
+  /*
   const GotoSignup = () => {
     navigate("/signup");
   };
+  */
 
   const handleLogin = async () => {
     try {
@@ -300,10 +303,12 @@ export default function Login() {
           {error && <CautionText>{error}</CautionText>}
           <ButtonContainer>
             <LoginButton onClick={handleLogin}>LOGIN</LoginButton>
+            {/*             
             <InfoContainer>
               <InfoText>아이디가 없으신가요?</InfoText>
               <SignText onClick={GotoSignup}>회원가입</SignText>
             </InfoContainer>
+            */}
           </ButtonContainer>
         </LoginContainer>
       </PageContainer>
