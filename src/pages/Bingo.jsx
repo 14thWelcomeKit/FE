@@ -34,7 +34,7 @@ const getImageUrlByCellId = (cellId, imageUrl) => {
     return imageUrl;
   }
 
-  return `${API_BASE_URL}/api/v1/bingo/image/${cellId}`;
+  return `${API_BASE_URL}/v1/bingo/image/${cellId}`;
 };
 
 const getCellColor = (status) => {
@@ -321,7 +321,7 @@ const extractCells = (raw) => {
 
 async function getMyTeamInfo() {
   try {
-    const res = await axiosInstance.get("/api/v1/team/me");
+    const res = await axiosInstance.get("/v1/team/me");
     return normalizeMyTeam(res);
   } catch (error) {
     return normalizeMyTeam({});
@@ -329,22 +329,22 @@ async function getMyTeamInfo() {
 }
 
 async function getGlobalBoard() {
-  const res = await axiosInstance.get("/api/v1/bingo/global");
+  const res = await axiosInstance.get("/v1/bingo/global");
   return extractCells(res);
 }
 
 async function getTeamBoard() {
-  const res = await axiosInstance.get("/api/v1/bingo/team");
+  const res = await axiosInstance.get("/v1/bingo/team");
   return unwrapResponse(res);
 }
 
 async function getGlobalMissionDetail(cellId) {
-  const res = await axiosInstance.get(`/api/v1/bingo/global/${cellId}`);
+  const res = await axiosInstance.get(`/v1/bingo/global/${cellId}`);
   return unwrapResponse(res);
 }
 
 async function getTeamMissionDetail(cellId) {
-  const res = await axiosInstance.get(`/api/v1/bingo/team/${cellId}`);
+  const res = await axiosInstance.get(`/v1/bingo/team/${cellId}`);
   return unwrapResponse(res);
 }
 
@@ -353,7 +353,7 @@ async function postMissionPhotoUpload({ cellId, file }) {
   formData.append("image", file);
 
   const res = await axiosInstance.post(
-    `/api/v1/bingo/team/${cellId}/upload`,
+    `/v1/bingo/team/${cellId}/upload`,
     formData,
     {
       headers: {
@@ -370,7 +370,7 @@ async function patchMissionPhotoUpload({ cellId, file }) {
   formData.append("image", file);
 
   const res = await axiosInstance.patch(
-    `/api/v1/bingo/team/${cellId}/upload`,
+    `/v1/bingo/team/${cellId}/upload`,
     formData,
     {
       headers: {
@@ -779,7 +779,7 @@ function NewBingo() {
                         ? selectedDetail.isMine
                           ? "사진 수정하기"
                           : "미션 진행 중"
-                        : "미션 수행하러 가기"}
+                        : "미션 사진 업로드"}
                   </UploadButton>
                 </>
               )}
@@ -1138,8 +1138,8 @@ const UploadButton = styled.button`
   border: none;
   border-radius: 10px;
   background: ${({ disabled, occupied }) =>
-    disabled ? (occupied ? "#ff9f1c" : "#d0d0d0") : "#a9c3ee"};
-  color: #ffffff;
+    disabled ? (occupied ? "#ff9f1c" : "#d0d0d0") : "#a7c6f9"};
+  color: #000000;
   font-family: Pretendard, sans-serif;
   font-size: 14px;
   font-weight: 700;
