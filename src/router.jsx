@@ -11,7 +11,6 @@ import Check from "./pages/Check";
 import QRCodeScanner from "./pages/QRScanner";
 import Bingo from "./pages/Bingo";
 import Board from "./pages/Board";
-import BoardMobile from "./pages/BoardMobile";
 import Setting from "./pages/Setting";
 
 const RouterComponent = () => {
@@ -30,7 +29,6 @@ const RouterComponent = () => {
         <Route path="/qrcodescanner" element={<QRCodeScanner />} />
         <Route path="/bingo" element={<Bingo />} />
         <Route path="/board" element={<Board />} />
-        <Route path="/boardmobile" element={<BoardMobile />} />
         <Route path="/setting" element={<Setting />} />
       </Routes>
     </BrowserRouter>

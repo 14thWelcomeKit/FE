@@ -48,6 +48,7 @@ const BoardTextContainer = styled.div`
   text-align: left;
 
   @media (max-width: ${breakpoints.tablet}) {
+    // 태블릿부터 상단 텍스트(문의게시판~ 운영진 답변 시간) 가운데 정렬
     max-width: 100%;
     text-align: center;
   }
@@ -115,7 +116,7 @@ const BoardDescription = styled.p`
 `;
 
 const BoardCaution = styled.h2`
-  color: #ff7710;
+  color: var(--orange);
   font-size: 1.35rem;
   display: flex;
   align-items: center;
@@ -163,7 +164,7 @@ const Title = styled.h2`
 
 const Notice = styled.div`
   font-size: 1.1rem;
-  color: #ffaa44;
+  color: var(--orange);
   margin-bottom: 1rem;
 
   @media (max-width: ${breakpoints.mobile}) {
@@ -189,9 +190,10 @@ const TextArea = styled.textarea`
   color: white;
   resize: vertical;
   box-sizing: border-box;
+  font-family: Pretendard;
 
   &:focus {
-    border-color: #ff7710;
+    border-color: var(--orange);
     outline: none;
   }
 
@@ -203,7 +205,6 @@ const TextArea = styled.textarea`
     font-size: 0.9rem;
     min-height: 4rem;
     padding: 0.6rem 0.75rem;
-    font-family: Pretendard;
   }
 `;
 
@@ -236,11 +237,11 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.18s;
   background: white;
-  color: #ff7710;
+  color: var(--orange);
   border: none;
 
   &:hover {
-    background: #ff7710;
+    background: var(--orange);
     color: white;
   }
 
@@ -334,7 +335,7 @@ const LoadingText = styled.div`
 
 const AdminBadge = styled.span`
   display: inline-block;
-  background: #ff7710;
+  background: var(--orange);
   color: white;
   font-size: 0.7rem;
   font-weight: 700;
@@ -396,7 +397,7 @@ export default function Board() {
             showCommentInput: false,
             commentText: "",
           };
-        })
+        }),
       );
       setPosts(converted);
     } catch (e) {
@@ -460,13 +461,13 @@ export default function Board() {
   const toggleCommentInput = (id) =>
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, showCommentInput: !p.showCommentInput } : p
-      )
+        p.id === id ? { ...p, showCommentInput: !p.showCommentInput } : p,
+      ),
     );
 
   const handleCommentChange = (id, value) =>
     setPosts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, commentText: value } : p))
+      prev.map((p) => (p.id === id ? { ...p, commentText: value } : p)),
     );
 
   const addComment = async (postId) => {
@@ -485,7 +486,9 @@ export default function Board() {
       const newC = await res.json();
       const converted = {
         id: newC.id,
-        nickname: newC.isAdminComment ? "운영진" : (newC.user?.userName ?? "익명"),
+        nickname: newC.isAdminComment
+          ? "운영진"
+          : (newC.user?.userName ?? "익명"),
         content: newC.content,
         time: formatDate(newC.createdAt),
         isAdmin: newC.isAdminComment,
@@ -493,9 +496,14 @@ export default function Board() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, comments: [...p.comments, converted], commentText: "", showCommentInput: false }
-            : p
-        )
+            ? {
+                ...p,
+                comments: [...p.comments, converted],
+                commentText: "",
+                showCommentInput: false,
+              }
+            : p,
+        ),
       );
     } catch (e) {
       setError(e.message);
@@ -505,16 +513,19 @@ export default function Board() {
   const deleteComment = async (postId, commentId) => {
     if (!window.confirm("정말 댓글을 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`${API_URL}/qna/comments/${commentId}?userId=${userId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `${API_URL}/qna/comments/${commentId}?userId=${userId}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) throw new Error("댓글 삭제에 실패했습니다.");
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
             ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) }
-            : p
-        )
+            : p,
+        ),
       );
     } catch (e) {
       setError(e.message);
@@ -553,13 +564,14 @@ export default function Board() {
             <CenterContent style={{ marginBottom: 0, gap: "1rem" }}>
               <Title>무엇이든 물어봐</Title>
               <Notice>
-                🙋 문의 후 운영진의 친절한 답변을 기다려주세요.{" "}
-                <br />
+                🙋 문의 후 운영진의 친절한 답변을 기다려주세요. <br />
                 운영진이 해결해드릴게요!
               </Notice>
             </CenterContent>
 
-            <InputArea style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}>
+            <InputArea
+              style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}
+            >
               <TextArea
                 placeholder="문의 내용을 입력하세요..."
                 value={text}
@@ -591,16 +603,28 @@ export default function Board() {
                     <Content>{post.content}</Content>
                     <Time>{post.time}</Time>
 
-                    <ButtonRow style={{ marginTop: "1rem", justifyContent: "flex-start" }}>
+                    <ButtonRow
+                      style={{
+                        marginTop: "1rem",
+                        justifyContent: "flex-start",
+                      }}
+                    >
                       <Button
                         onClick={() => toggleCommentInput(post.id)}
-                        style={{ minWidth: "unset", width: "auto", padding: "0 1.3rem" }}
+                        style={{
+                          minWidth: "unset",
+                          width: "auto",
+                          padding: "0 1.3rem",
+                        }}
                       >
                         댓글 {post.comments.length}
                       </Button>
                       <Button
                         onClick={() => deletePost(post.id)}
-                        style={{ background: "rgba(255,60,60,0.15)", color: "#ff6666" }}
+                        style={{
+                          background: "rgba(255,60,60,0.15)",
+                          color: "#ff6666",
+                        }}
                       >
                         삭제
                       </Button>
@@ -611,13 +635,20 @@ export default function Board() {
                         <TextArea
                           placeholder="댓글을 입력하세요..."
                           value={post.commentText}
-                          onChange={(e) => handleCommentChange(post.id, e.target.value)}
+                          onChange={(e) =>
+                            handleCommentChange(post.id, e.target.value)
+                          }
                         />
                         <ButtonRow>
-                          <Button onClick={() => addComment(post.id)}>등록</Button>
+                          <Button onClick={() => addComment(post.id)}>
+                            등록
+                          </Button>
                           <Button
                             onClick={() => toggleCommentInput(post.id)}
-                            style={{ background: "rgba(255,255,255,0.1)", color: "#ddd" }}
+                            style={{
+                              background: "rgba(255,255,255,0.1)",
+                              color: "#ddd",
+                            }}
                           >
                             취소
                           </Button>
@@ -630,18 +661,30 @@ export default function Board() {
                         {post.comments.map((comment) => (
                           <PostBox
                             key={comment.id}
-                            style={{ padding: "1.2rem 0 0.8rem", borderBottom: "none" }}
+                            style={{
+                              padding: "1.2rem 0 0.8rem",
+                              borderBottom: "none",
+                            }}
                           >
                             <Nickname>
                               ↳ {comment.nickname}
-                              {comment.isAdmin && <AdminBadge>운영진</AdminBadge>}
+                              {comment.isAdmin && (
+                                <AdminBadge>운영진</AdminBadge>
+                              )}
                             </Nickname>
                             <Content>{comment.content}</Content>
                             <Time>{comment.time}</Time>
 
-                            <ButtonRow style={{ marginTop: "0.6rem", justifyContent: "flex-start" }}>
+                            <ButtonRow
+                              style={{
+                                marginTop: "0.6rem",
+                                justifyContent: "flex-start",
+                              }}
+                            >
                               <Button
-                                onClick={() => deleteComment(post.id, comment.id)}
+                                onClick={() =>
+                                  deleteComment(post.id, comment.id)
+                                }
                                 style={{
                                   minWidth: "unset",
                                   width: "auto",
