@@ -51,6 +51,7 @@ const WelcomeContainer = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 1.25rem;
+  padding: 0 5rem 3rem;
 `;
 
 const WelcomeTitle = styled.div`
@@ -77,9 +78,8 @@ const WelcomeMessage = styled.div`
   line-height: 1.6;
   text-align: center;
   color: var(--black);
-  white-space: pre-wrap;
   word-break: keep-all;
-  padding: 0 5rem 4rem;
+  overflow-wrap: break-word;
 
   @media (max-width: ${breakpoints.tablet}) {
     font-size: 1.125rem;
@@ -88,6 +88,10 @@ const WelcomeMessage = styled.div`
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1rem;
   }
+`;
+
+const WelcomeAdmin = styled(WelcomeMessage)`
+  color: dimgray;
 `;
 
 const DismissContainer = styled.div`
@@ -136,6 +140,7 @@ const DismissButton = styled.button`
 
 export default function WelcomeModal({ onClose, isDismiss = true }) {
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [welcomeAdmin, setWelcomeAdmin] = useState("");
   const [welcomeError, setWelcomeError] = useState("");
 
   useEffect(() => {
@@ -145,15 +150,15 @@ export default function WelcomeModal({ onClose, isDismiss = true }) {
   const fetchWelcomeMessage = async () => {
     try {
       const res = await axiosInstance.get("/welcome/message");
-      if (res.data && typeof res.data.content === "string") {
-        setWelcomeMessage(res.data.content);
-      } else {
-        setWelcomeMessage("아직 웰컴 메시지가 없습니다.");
+      if (res.data) {
+        setWelcomeMessage(res.data.content || "아직 웰컴 메시지가 없습니다.");
+        setWelcomeAdmin(res.data.senderName || "운영진");
+        setWelcomeError("");
       }
-      setWelcomeError("");
     } catch (err) {
       const errMessage = err.response?.data?.message || "웰컴 메시지를 불러오지 못했습니다.";
       setWelcomeError(errMessage);
+      setWelcomeMessage("");
     }
   };
 
@@ -174,6 +179,7 @@ export default function WelcomeModal({ onClose, isDismiss = true }) {
         <WelcomeContainer>
           <WelcomeTitle>WELCOME</WelcomeTitle>
           <WelcomeMessage>{welcomeMessage || welcomeError}</WelcomeMessage>
+          <WelcomeAdmin>{welcomeAdmin}</WelcomeAdmin>
         </WelcomeContainer>
         {!isDismiss && <DismissContainer>
           <DismissMessage>MYPAGE에서 다시 보실 수 있습니다.</DismissMessage>
