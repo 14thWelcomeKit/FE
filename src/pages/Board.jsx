@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { BsExclamationTriangle } from "react-icons/bs";
+
+const API_URL = process.env.REACT_APP_API_URL;
+console.log("API_URL:", API_URL);
 
 const BoardContent = styled.div`
   display: flex;
@@ -26,6 +29,7 @@ const BoardContent = styled.div`
     align-items: center;
     gap: 2rem;
     margin-top: 1.4rem;
+    padding: 0;
   }
 
   @media (max-width: ${breakpoints.mobile}) {
@@ -33,6 +37,7 @@ const BoardContent = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 1.5rem;
+    padding: 0;
   }
 `;
 
@@ -121,6 +126,7 @@ const BoardCaution = styled.h2`
   @media (max-width: ${breakpoints.tablet}) {
     justify-content: center;
   }
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1.25rem;
     margin-top: 1rem;
@@ -129,7 +135,7 @@ const BoardCaution = styled.h2`
 
 const CautionIcon = styled(BsExclamationTriangle)`
   font-size: 1.6rem;
-  color: var(--orange);
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1.25rem;
   }
@@ -139,6 +145,7 @@ const BoardFooter = styled.p`
   color: #ddd;
   font-size: 1.1rem;
   line-height: 1.45;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.875rem;
   }
@@ -149,6 +156,7 @@ const Title = styled.h2`
   font-size: 2.3rem;
   font-weight: 700;
   margin: 0 0 0.8rem;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 2rem;
   }
@@ -158,6 +166,7 @@ const Notice = styled.div`
   font-size: 1.1rem;
   color: var(--orange);
   margin-bottom: 1rem;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.8rem;
   }
@@ -182,6 +191,7 @@ const TextArea = styled.textarea`
   resize: vertical;
   box-sizing: border-box;
   font-family: Pretendard;
+
   &:focus {
     border-color: var(--orange);
     outline: none;
@@ -209,6 +219,7 @@ const ButtonRow = styled.div`
     height: 4rem;
     font-size: 1.15rem;
   }
+
   @media (max-width: ${breakpoints.mobile}) {
     button {
       min-width: unset;
@@ -225,7 +236,6 @@ const Button = styled.button`
   font-weight: 700;
   cursor: pointer;
   transition: all 0.18s;
-
   background: white;
   color: var(--orange);
   border: none;
@@ -234,6 +244,12 @@ const Button = styled.button`
     background: var(--orange);
     color: white;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.875rem;
     padding: 0.5rem 1.5rem;
@@ -259,6 +275,7 @@ const Nickname = styled.div`
   font-weight: 700;
   font-size: 1.03rem;
   color: #ffddaa;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.9rem;
   }
@@ -270,6 +287,7 @@ const Content = styled.div`
   line-height: 1.6;
   color: white;
   word-break: break-word;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.9rem;
   }
@@ -279,6 +297,7 @@ const Time = styled.div`
   font-size: 0.78rem;
   color: #aaa;
   opacity: 0.85;
+
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 0.5rem;
   }
@@ -300,87 +319,217 @@ const CenterContent = styled.div`
   margin-bottom: 2rem;
 `;
 
+const ErrorMessage = styled.div`
+  color: #ff6666;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 0.5rem 0;
+`;
+
+const LoadingText = styled.div`
+  color: #aaa;
+  font-size: 1rem;
+  text-align: center;
+  padding: 1rem 0;
+`;
+
+const AdminBadge = styled.span`
+  display: inline-block;
+  background: var(--orange);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+`;
+
+const formatDate = (isoString) => {
+  if (!isoString) return "";
+  return isoString.slice(0, 10).replace(/-/g, ".");
+};
+
 export default function Board() {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      nickname: "익명",
-      content: "문의드립니다.",
-      time: "2026.03.13",
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    },
-  ]);
-
+  const [posts, setPosts] = useState([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const addPost = () => {
+  // 현재 로그인된 userId (실제 인증 연동 시 교체)
+  const userId = 1;
+
+  const fetchComments = async (qnaId) => {
+    try {
+      const res = await fetch(`${API_URL}/qna/comments/${qnaId}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.map((c) => ({
+        id: c.id,
+        nickname: c.isAdminComment ? "운영진" : (c.user?.userName ?? "익명"),
+        content: c.content,
+        time: formatDate(c.createdAt),
+        isAdmin: c.isAdminComment,
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_URL}/qna`);
+      if (!res.ok) throw new Error("게시글을 불러오지 못했습니다.");
+      const data = await res.json();
+      const converted = await Promise.all(
+        data.map(async (p) => {
+          const comments = await fetchComments(p.id);
+          return {
+            id: p.id,
+            nickname: p.user?.userName ?? "익명",
+            content: p.content,
+            title: p.title,
+            time: formatDate(p.createdAt),
+            comments,
+            showCommentInput: false,
+            commentText: "",
+          };
+        }),
+      );
+      setPosts(converted);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const addPost = async () => {
     if (!text.trim()) return;
-    const newPost = {
-      id: Date.now(),
-      nickname: "익명",
-      content: text,
-      time: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
-      comments: [],
-      showCommentInput: false,
-      commentText: "",
-    };
-    setPosts([newPost, ...posts]);
-    setText("");
+    setSubmitting(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({
+        userId,
+        title: text.slice(0, 50),
+        content: text,
+      });
+      const res = await fetch(`${API_URL}/qna?${params.toString()}`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("게시글 등록에 실패했습니다.");
+      const newP = await res.json();
+      const converted = {
+        id: newP.id,
+        nickname: newP.user?.userName ?? "익명",
+        content: newP.content,
+        title: newP.title,
+        time: formatDate(newP.createdAt),
+        comments: [],
+        showCommentInput: false,
+        commentText: "",
+      };
+      setPosts((prev) => [converted, ...prev]);
+      setText("");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const deletePost = (id) => {
+  const deletePost = async (id) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
-    setPosts(posts.filter((p) => p.id !== id));
+    try {
+      const res = await fetch(`${API_URL}/qna/${id}?userId=${userId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("게시글 삭제에 실패했습니다.");
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
-  const toggleCommentInput = (id) => {
-    setPosts(
-      posts.map((p) =>
+  const toggleCommentInput = (id) =>
+    setPosts((prev) =>
+      prev.map((p) =>
         p.id === id ? { ...p, showCommentInput: !p.showCommentInput } : p,
       ),
     );
-  };
 
-  const handleCommentChange = (id, value) => {
-    setPosts(
-      posts.map((p) => (p.id === id ? { ...p, commentText: value } : p)),
+  const handleCommentChange = (id, value) =>
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, commentText: value } : p)),
     );
-  };
 
-  const addComment = (postId) => {
+  const addComment = async (postId) => {
     const post = posts.find((p) => p.id === postId);
-    if (!post.commentText.trim()) return;
-    const newComment = {
-      id: Date.now(),
-      nickname: "익명",
-      content: post.commentText,
-      time: new Date().toISOString().slice(0, 10).replace(/-/g, "."),
-    };
-    setPosts(
-      posts.map((p) =>
-        p.id === postId
-          ? {
-              ...p,
-              comments: [...p.comments, newComment],
-              commentText: "",
-              showCommentInput: false,
-            }
-          : p,
-      ),
-    );
+    if (!post?.commentText.trim()) return;
+    try {
+      const params = new URLSearchParams({
+        userId,
+        qnaId: postId,
+        content: post.commentText,
+      });
+      const res = await fetch(`${API_URL}/qna/comments?${params.toString()}`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("댓글 등록에 실패했습니다.");
+      const newC = await res.json();
+      const converted = {
+        id: newC.id,
+        nickname: newC.isAdminComment
+          ? "운영진"
+          : (newC.user?.userName ?? "익명"),
+        content: newC.content,
+        time: formatDate(newC.createdAt),
+        isAdmin: newC.isAdminComment,
+      };
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: [...p.comments, converted],
+                commentText: "",
+                showCommentInput: false,
+              }
+            : p,
+        ),
+      );
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
-  const deleteComment = (postId, commentId) => {
+  const deleteComment = async (postId, commentId) => {
     if (!window.confirm("정말 댓글을 삭제하시겠습니까?")) return;
-    setPosts(
-      posts.map((p) =>
-        p.id === postId
-          ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) }
-          : p,
-      ),
-    );
+    try {
+      const res = await fetch(
+        `${API_URL}/qna/comments/${commentId}?userId=${userId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) throw new Error("댓글 삭제에 실패했습니다.");
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) }
+            : p,
+        ),
+      );
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   return (
@@ -413,10 +562,10 @@ export default function Board() {
 
           <BoardContainer style={{ gap: 0 }}>
             <CenterContent style={{ marginBottom: 0, gap: "1rem" }}>
-              <Title>🦁 무엇이든 물어봐 🦁</Title>
+              <Title>무엇이든 물어봐</Title>
               <Notice>
-                🙋 문의 후 운영진의 친절한 답변을 기다려주세요. 운영진이
-                해결해드릴게요!
+                🙋 문의 후 운영진의 친절한 답변을 기다려주세요. <br />
+                운영진이 해결해드릴게요!
               </Notice>
             </CenterContent>
 
@@ -428,8 +577,11 @@ export default function Board() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
+              {error && <ErrorMessage>{error}</ErrorMessage>}
               <ButtonRow>
-                <Button onClick={addPost}>등록</Button>
+                <Button onClick={addPost} disabled={submitting}>
+                  {submitting ? "등록 중..." : "등록"}
+                </Button>
                 <Button
                   onClick={() => setText("")}
                   style={{ background: "rgba(255,255,255,0.1)", color: "#ddd" }}
@@ -440,102 +592,118 @@ export default function Board() {
             </InputArea>
 
             <div style={{ marginTop: "0.8rem" }}>
-              {posts.map((post) => (
-                <PostBox key={post.id}>
-                  <Nickname>{post.nickname}</Nickname>
-                  <Content>{post.content}</Content>
-                  <Time>{post.time}</Time>
+              {loading ? (
+                <LoadingText>게시글을 불러오는 중...</LoadingText>
+              ) : posts.length === 0 ? (
+                <LoadingText>아직 등록된 문의가 없습니다.</LoadingText>
+              ) : (
+                posts.map((post) => (
+                  <PostBox key={post.id}>
+                    <Nickname>{post.nickname}</Nickname>
+                    <Content>{post.content}</Content>
+                    <Time>{post.time}</Time>
 
-                  <ButtonRow
-                    style={{ marginTop: "1rem", justifyContent: "flex-start" }}
-                  >
-                    <Button
-                      onClick={() => toggleCommentInput(post.id)}
+                    <ButtonRow
                       style={{
-                        minWidth: "unset",
-                        width: "auto",
-                        padding: "0 1.3rem",
+                        marginTop: "1rem",
+                        justifyContent: "flex-start",
                       }}
                     >
-                      댓글 {post.comments.length}
-                    </Button>
-                    <Button
-                      onClick={() => deletePost(post.id)}
-                      style={{
-                        background: "rgba(255,60,60,0.15)",
-                        color: "#ff6666",
-                      }}
-                    >
-                      삭제
-                    </Button>
-                  </ButtonRow>
+                      <Button
+                        onClick={() => toggleCommentInput(post.id)}
+                        style={{
+                          minWidth: "unset",
+                          width: "auto",
+                          padding: "0 1.3rem",
+                        }}
+                      >
+                        댓글 {post.comments.length}
+                      </Button>
+                      <Button
+                        onClick={() => deletePost(post.id)}
+                        style={{
+                          background: "rgba(255,60,60,0.15)",
+                          color: "#ff6666",
+                        }}
+                      >
+                        삭제
+                      </Button>
+                    </ButtonRow>
 
-                  {post.showCommentInput && (
-                    <InputArea style={{ marginTop: "1.2rem" }}>
-                      <TextArea
-                        placeholder="댓글을 입력하세요..."
-                        value={post.commentText}
-                        onChange={(e) =>
-                          handleCommentChange(post.id, e.target.value)
-                        }
-                      />
-                      <ButtonRow>
-                        <Button onClick={() => addComment(post.id)}>
-                          등록
-                        </Button>
-                        <Button
-                          onClick={() => toggleCommentInput(post.id)}
-                          style={{
-                            background: "rgba(255,255,255,0.1)",
-                            color: "#ddd",
-                          }}
-                        >
-                          취소
-                        </Button>
-                      </ButtonRow>
-                    </InputArea>
-                  )}
-
-                  {post.comments.length > 0 && (
-                    <CommentArea>
-                      {post.comments.map((comment) => (
-                        <PostBox
-                          key={comment.id}
-                          style={{
-                            padding: "1.2rem 0 0.8rem",
-                            borderBottom: "none",
-                          }}
-                        >
-                          <Nickname>↳ {comment.nickname}</Nickname>
-                          <Content>{comment.content}</Content>
-                          <Time>{comment.time}</Time>
-
-                          <ButtonRow
+                    {post.showCommentInput && (
+                      <InputArea style={{ marginTop: "1.2rem" }}>
+                        <TextArea
+                          placeholder="댓글을 입력하세요..."
+                          value={post.commentText}
+                          onChange={(e) =>
+                            handleCommentChange(post.id, e.target.value)
+                          }
+                        />
+                        <ButtonRow>
+                          <Button onClick={() => addComment(post.id)}>
+                            등록
+                          </Button>
+                          <Button
+                            onClick={() => toggleCommentInput(post.id)}
                             style={{
-                              marginTop: "0.6rem",
-                              justifyContent: "flex-start",
+                              background: "rgba(255,255,255,0.1)",
+                              color: "#ddd",
                             }}
                           >
-                            <Button
-                              onClick={() => deleteComment(post.id, comment.id)}
+                            취소
+                          </Button>
+                        </ButtonRow>
+                      </InputArea>
+                    )}
+
+                    {post.comments.length > 0 && (
+                      <CommentArea>
+                        {post.comments.map((comment) => (
+                          <PostBox
+                            key={comment.id}
+                            style={{
+                              padding: "1.2rem 0 0.8rem",
+                              borderBottom: "none",
+                            }}
+                          >
+                            <Nickname>
+                              ↳ {comment.nickname}
+                              {comment.isAdmin && (
+                                <AdminBadge>운영진</AdminBadge>
+                              )}
+                            </Nickname>
+                            <Content>{comment.content}</Content>
+                            <Time>{comment.time}</Time>
+
+                            <ButtonRow
                               style={{
-                                minWidth: "unset",
-                                width: "auto",
-                                padding: "0 1rem",
-                                fontSize: "0.9rem",
-                                background: "rgba(255,60,60,0.12)",
-                                color: "#ff7777",
+                                marginTop: "0.6rem",
+                                justifyContent: "flex-start",
                               }}
                             >
-                              삭제
-                            </Button>
-                          </ButtonRow>
-                        </PostBox>
-                      ))}
-                    </CommentArea>
-                  )}
-                </PostBox>
-              ))}
+                              <Button
+                                onClick={() =>
+                                  deleteComment(post.id, comment.id)
+                                }
+                                style={{
+                                  minWidth: "unset",
+                                  width: "auto",
+                                  padding: "0 1rem",
+                                  fontSize: "0.9rem",
+                                  background: "rgba(255,60,60,0.12)",
+                                  color: "#ff7777",
+                                }}
+                              >
+                                삭제
+                              </Button>
+                            </ButtonRow>
+                          </PostBox>
+                        ))}
+                      </CommentArea>
+                    )}
+                  </PostBox>
+                ))
+              )}
             </div>
           </BoardContainer>
         </BoardContent>
