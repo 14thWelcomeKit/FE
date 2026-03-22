@@ -21,17 +21,18 @@ const BoardContent = styled.div`
   }
 
   @media (max-width: ${breakpoints.tablet}) {
+    width: 85%;
     flex-direction: column;
     align-items: center;
     gap: 2rem;
     margin-top: 1.4rem;
-    padding: 0 1.5rem;
   }
 
   @media (max-width: ${breakpoints.mobile}) {
-    gap: 1.6rem;
-    margin-top: 1.2rem;
-    padding: 0 1rem;
+    width: 85%;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
   }
 `;
 
@@ -42,8 +43,14 @@ const BoardTextContainer = styled.div`
   text-align: left;
 
   @media (max-width: ${breakpoints.tablet}) {
+    // 태블릿부터 상단 텍스트(문의게시판~ 운영진 답변 시간) 가운데 정렬
     max-width: 100%;
     text-align: center;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    min-width: unset;
+    width: 100%;
   }
 `;
 
@@ -61,15 +68,21 @@ const BoardContainer = styled.div`
   gap: 2rem;
 
   @media (max-width: ${breakpoints.tablet}) {
-    max-width: 94%;
+    width: 100%;
+    max-width: 100%;
     padding: 1.8rem 2rem;
+    gap: 1.4rem;
+    border-radius: 1.3rem;
+    box-sizing: border-box;
   }
 
   @media (max-width: ${breakpoints.mobile}) {
-    max-width: 96%;
+    width: 100%;
+    max-width: 100%;
     padding: 1.5rem 1.4rem;
     gap: 1.4rem;
     border-radius: 1.3rem;
+    box-sizing: border-box;
   }
 `;
 
@@ -98,7 +111,7 @@ const BoardDescription = styled.p`
 `;
 
 const BoardCaution = styled.h2`
-  color: #ff7710;
+  color: var(--orange);
   font-size: 1.35rem;
   display: flex;
   align-items: center;
@@ -108,16 +121,27 @@ const BoardCaution = styled.h2`
   @media (max-width: ${breakpoints.tablet}) {
     justify-content: center;
   }
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 1.25rem;
+    margin-top: 1rem;
+  }
 `;
 
 const CautionIcon = styled(BsExclamationTriangle)`
   font-size: 1.6rem;
+  color: var(--orange);
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 1.25rem;
+  }
 `;
 
 const BoardFooter = styled.p`
   color: #ddd;
   font-size: 1.1rem;
   line-height: 1.45;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.875rem;
+  }
 `;
 
 const Title = styled.h2`
@@ -125,12 +149,18 @@ const Title = styled.h2`
   font-size: 2.3rem;
   font-weight: 700;
   margin: 0 0 0.8rem;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 2rem;
+  }
 `;
 
 const Notice = styled.div`
   font-size: 1.1rem;
-  color: #ffaa44;
+  color: var(--orange);
   margin-bottom: 1rem;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.8rem;
+  }
 `;
 
 const InputArea = styled.div`
@@ -151,9 +181,9 @@ const TextArea = styled.textarea`
   color: white;
   resize: vertical;
   box-sizing: border-box;
-
+  font-family: Pretendard;
   &:focus {
-    border-color: #ff7710;
+    border-color: var(--orange);
     outline: none;
   }
 
@@ -162,9 +192,9 @@ const TextArea = styled.textarea`
   }
 
   @media (max-width: ${breakpoints.mobile}) {
-    min-height: 4.2rem;
-    padding: 0.85rem 1.1rem;
-    font-size: 0.98rem;
+    font-size: 0.9rem;
+    min-height: 4rem;
+    padding: 0.6rem 0.75rem;
   }
 `;
 
@@ -176,13 +206,19 @@ const ButtonRow = styled.div`
   button {
     flex: 1;
     min-width: 120px;
-    height: 4rem;           
+    height: 4rem;
     font-size: 1.15rem;
+  }
+  @media (max-width: ${breakpoints.mobile}) {
+    button {
+      min-width: unset;
+      height: 3rem;
+    }
   }
 `;
 
 const Button = styled.button`
-  height: 4rem;               
+  height: 4rem;
   padding: 0 2.2rem;
   border-radius: 2rem;
   font-size: 1.15rem;
@@ -191,17 +227,23 @@ const Button = styled.button`
   transition: all 0.18s;
 
   background: white;
-  color: #ff7710;
+  color: var(--orange);
   border: none;
 
   &:hover {
-    background: #ff7710;
+    background: var(--orange);
     color: white;
+  }
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.875rem;
+    padding: 0.5rem 1.5rem;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 `;
 
 const PostBox = styled.div`
-  padding: 1.6rem 0;            
+  padding: 1.6rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 
   &:last-child {
@@ -217,20 +259,29 @@ const Nickname = styled.div`
   font-weight: 700;
   font-size: 1.03rem;
   color: #ffddaa;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.9rem;
+  }
 `;
 
 const Content = styled.div`
-  margin: 0.7rem 0 0.3rem;       
+  margin: 0.7rem 0 0.3rem;
   font-size: 1.03rem;
   line-height: 1.6;
   color: white;
   word-break: break-word;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.9rem;
+  }
 `;
 
 const Time = styled.div`
   font-size: 0.78rem;
   color: #aaa;
   opacity: 0.85;
+  @media (max-width: ${breakpoints.mobile}) {
+    font-size: 0.5rem;
+  }
 `;
 
 const CommentArea = styled.div`
@@ -245,7 +296,7 @@ const CenterContent = styled.div`
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 1rem;                    
+  gap: 1rem;
   margin-bottom: 2rem;
 `;
 
@@ -285,11 +336,17 @@ export default function Board() {
   };
 
   const toggleCommentInput = (id) => {
-    setPosts(posts.map((p) => (p.id === id ? { ...p, showCommentInput: !p.showCommentInput } : p)));
+    setPosts(
+      posts.map((p) =>
+        p.id === id ? { ...p, showCommentInput: !p.showCommentInput } : p,
+      ),
+    );
   };
 
   const handleCommentChange = (id, value) => {
-    setPosts(posts.map((p) => (p.id === id ? { ...p, commentText: value } : p)));
+    setPosts(
+      posts.map((p) => (p.id === id ? { ...p, commentText: value } : p)),
+    );
   };
 
   const addComment = (postId) => {
@@ -304,9 +361,14 @@ export default function Board() {
     setPosts(
       posts.map((p) =>
         p.id === postId
-          ? { ...p, comments: [...p.comments, newComment], commentText: "", showCommentInput: false }
-          : p
-      )
+          ? {
+              ...p,
+              comments: [...p.comments, newComment],
+              commentText: "",
+              showCommentInput: false,
+            }
+          : p,
+      ),
     );
   };
 
@@ -314,8 +376,10 @@ export default function Board() {
     if (!window.confirm("정말 댓글을 삭제하시겠습니까?")) return;
     setPosts(
       posts.map((p) =>
-        p.id === postId ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) } : p
-      )
+        p.id === postId
+          ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) }
+          : p,
+      ),
     );
   };
 
@@ -350,10 +414,15 @@ export default function Board() {
           <BoardContainer style={{ gap: 0 }}>
             <CenterContent style={{ marginBottom: 0, gap: "1rem" }}>
               <Title>🦁 무엇이든 물어봐 🦁</Title>
-              <Notice>🙋 문의 후 운영진의 친절한 답변을 기다려주세요. 운영진이 해결해드릴게요!</Notice>
+              <Notice>
+                🙋 문의 후 운영진의 친절한 답변을 기다려주세요. 운영진이
+                해결해드릴게요!
+              </Notice>
             </CenterContent>
 
-            <InputArea style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}>
+            <InputArea
+              style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}
+            >
               <TextArea
                 placeholder="문의 내용을 입력하세요..."
                 value={text}
@@ -377,16 +446,25 @@ export default function Board() {
                   <Content>{post.content}</Content>
                   <Time>{post.time}</Time>
 
-                  <ButtonRow style={{ marginTop: "1rem", justifyContent: "flex-start" }}>
+                  <ButtonRow
+                    style={{ marginTop: "1rem", justifyContent: "flex-start" }}
+                  >
                     <Button
                       onClick={() => toggleCommentInput(post.id)}
-                      style={{ minWidth: "unset", width: "auto", padding: "0 1.3rem" }}
+                      style={{
+                        minWidth: "unset",
+                        width: "auto",
+                        padding: "0 1.3rem",
+                      }}
                     >
                       댓글 {post.comments.length}
                     </Button>
                     <Button
                       onClick={() => deletePost(post.id)}
-                      style={{ background: "rgba(255,60,60,0.15)", color: "#ff6666" }}
+                      style={{
+                        background: "rgba(255,60,60,0.15)",
+                        color: "#ff6666",
+                      }}
                     >
                       삭제
                     </Button>
@@ -397,13 +475,20 @@ export default function Board() {
                       <TextArea
                         placeholder="댓글을 입력하세요..."
                         value={post.commentText}
-                        onChange={(e) => handleCommentChange(post.id, e.target.value)}
+                        onChange={(e) =>
+                          handleCommentChange(post.id, e.target.value)
+                        }
                       />
                       <ButtonRow>
-                        <Button onClick={() => addComment(post.id)}>등록</Button>
+                        <Button onClick={() => addComment(post.id)}>
+                          등록
+                        </Button>
                         <Button
                           onClick={() => toggleCommentInput(post.id)}
-                          style={{ background: "rgba(255,255,255,0.1)", color: "#ddd" }}
+                          style={{
+                            background: "rgba(255,255,255,0.1)",
+                            color: "#ddd",
+                          }}
                         >
                           취소
                         </Button>
@@ -416,13 +501,21 @@ export default function Board() {
                       {post.comments.map((comment) => (
                         <PostBox
                           key={comment.id}
-                          style={{ padding: "1.2rem 0 0.8rem", borderBottom: "none" }}
+                          style={{
+                            padding: "1.2rem 0 0.8rem",
+                            borderBottom: "none",
+                          }}
                         >
                           <Nickname>↳ {comment.nickname}</Nickname>
                           <Content>{comment.content}</Content>
                           <Time>{comment.time}</Time>
 
-                          <ButtonRow style={{ marginTop: "0.6rem", justifyContent: "flex-start" }}>
+                          <ButtonRow
+                            style={{
+                              marginTop: "0.6rem",
+                              justifyContent: "flex-start",
+                            }}
+                          >
                             <Button
                               onClick={() => deleteComment(post.id, comment.id)}
                               style={{
