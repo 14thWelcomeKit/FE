@@ -5,9 +5,9 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { BsExclamationTriangle } from "react-icons/bs";
 
+import axiosInstance from "./../axiosInstance";
 const API_URL = process.env.REACT_APP_API_URL;
 console.log("API_URL:", API_URL);
-
 const BoardContent = styled.div`
   display: flex;
   justify-content: space-between;
@@ -362,12 +362,11 @@ export default function Board() {
 
   const fetchComments = async (qnaId) => {
     try {
-      const res = await fetch(`${API_URL}/qna/comments/${qnaId}`);
-      if (!res.ok) return [];
-      const data = await res.json();
+      const res = await axiosInstance.get(`/qna/comments/${qnaId}`);
+      console.log(res.data);
+      const data = res.data;
       return data.map((c) => ({
         id: c.id,
-        nickname: c.isAdminComment ? "운영진" : (c.user?.userName ?? "익명"),
         content: c.content,
         time: formatDate(c.createdAt),
         isAdmin: c.isAdminComment,
@@ -381,15 +380,13 @@ export default function Board() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/qna`);
-      if (!res.ok) throw new Error("게시글을 불러오지 못했습니다.");
-      const data = await res.json();
+      const res = await axiosInstance.get("/qna");
+      const data = res.data;
       const converted = await Promise.all(
         data.map(async (p) => {
           const comments = await fetchComments(p.id);
           return {
             id: p.id,
-            nickname: p.user?.userName ?? "익명",
             content: p.content,
             title: p.title,
             time: formatDate(p.createdAt),
@@ -421,14 +418,10 @@ export default function Board() {
         title: text.slice(0, 50),
         content: text,
       });
-      const res = await fetch(`${API_URL}/qna?${params.toString()}`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("게시글 등록에 실패했습니다.");
-      const newP = await res.json();
+      const res = await axiosInstance.post(`/qna?${params.toString()}`);
+      const newP = res.data;
       const converted = {
         id: newP.id,
-        nickname: newP.user?.userName ?? "익명",
         content: newP.content,
         title: newP.title,
         time: formatDate(newP.createdAt),
@@ -448,10 +441,7 @@ export default function Board() {
   const deletePost = async (id) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`${API_URL}/qna/${id}?userId=${userId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("게시글 삭제에 실패했습니다.");
+      await axiosInstance.delete(`/qna/${id}?userId=${userId}`);
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
       setError(e.message);
@@ -479,16 +469,12 @@ export default function Board() {
         qnaId: postId,
         content: post.commentText,
       });
-      const res = await fetch(`${API_URL}/qna/comments?${params.toString()}`, {
-        method: "POST",
-      });
-      if (!res.ok) throw new Error("댓글 등록에 실패했습니다.");
-      const newC = await res.json();
+      const res = await axiosInstance.post(
+        `/qna/comments?${params.toString()}`,
+      );
+      const newC = res.data;
       const converted = {
         id: newC.id,
-        nickname: newC.isAdminComment
-          ? "운영진"
-          : (newC.user?.userName ?? "익명"),
         content: newC.content,
         time: formatDate(newC.createdAt),
         isAdmin: newC.isAdminComment,
@@ -513,13 +499,7 @@ export default function Board() {
   const deleteComment = async (postId, commentId) => {
     if (!window.confirm("정말 댓글을 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(
-        `${API_URL}/qna/comments/${commentId}?userId=${userId}`,
-        {
-          method: "DELETE",
-        },
-      );
-      if (!res.ok) throw new Error("댓글 삭제에 실패했습니다.");
+      await axiosInstance.delete(`/qna/comments/${commentId}?userId=${userId}`);
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -599,7 +579,7 @@ export default function Board() {
               ) : (
                 posts.map((post) => (
                   <PostBox key={post.id}>
-                    <Nickname>{post.nickname}</Nickname>
+                    <Nickname>익명</Nickname>
                     <Content>{post.content}</Content>
                     <Time>{post.time}</Time>
 
@@ -667,10 +647,7 @@ export default function Board() {
                             }}
                           >
                             <Nickname>
-                              ↳ {comment.nickname}
-                              {comment.isAdmin && (
-                                <AdminBadge>운영진</AdminBadge>
-                              )}
+                              ↳ {comment.isAdmin ? "운영진" : "익명"} ...
                             </Nickname>
                             <Content>{comment.content}</Content>
                             <Time>{comment.time}</Time>
