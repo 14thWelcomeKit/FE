@@ -39,7 +39,6 @@ export default function Setting() {
       <ChooseButton onClick={() => gotoPage("/introduce")}>Introduce</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/mypage")}>Mypage</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/board")}>Board</ChooseButton>
-      <ChooseButton onClick={() => gotoPage("/boardmobile")}>BoardMobile</ChooseButton>
       <ChooseButton onClick={() => gotoPage("/bingo")}>Bingo</ChooseButton>
       {/* 연동 확인 */}
       <ChooseButton onClick={() => gotoPage("/login")}>Login</ChooseButton>
