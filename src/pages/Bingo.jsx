@@ -50,17 +50,55 @@ const getPanelBgColor = (status) => {
 };
 
 const globalStatusToUiStatus = (status) => {
-  if (status === "PROCESSING") return "PENDING";
-  if (status === "OCCUPIED") return "OCCUPIED";
+  const normalized = String(status ?? "").toUpperCase();
+
+  if (
+    normalized === "PROCESSING" ||
+    normalized === "PENDING" ||
+    normalized === "YELLOW" ||
+    normalized === "IN_PROGRESS"
+  ) {
+    return "PENDING";
+  }
+
+  if (
+    normalized === "OCCUPIED" ||
+    normalized === "COMPLETE" ||
+    normalized === "COMPLETED" ||
+    normalized === "CONFIRMED" ||
+    normalized === "SUCCESS" ||
+    normalized === "RED" ||
+    normalized === "BLACK" ||
+    normalized === "GRAY"
+  ) {
+    return "OCCUPIED";
+  }
+
   return "AVAILABLE";
 };
 
 const teamBorderTypeToUiStatus = (borderType) => {
-  if (borderType === "PROCESSING_OURS") {
+  const normalized = String(borderType ?? "").toUpperCase();
+
+  if (
+    normalized === "PROCESSING_OURS" ||
+    normalized === "PROCESSING" ||
+    normalized === "PENDING" ||
+    normalized === "YELLOW"
+  ) {
     return "PENDING";
   }
 
-  if (borderType === "BLACK" || borderType === "GRAY") {
+  if (
+    normalized === "BLACK" ||
+    normalized === "GRAY" ||
+    normalized === "OCCUPIED" ||
+    normalized === "COMPLETE" ||
+    normalized === "COMPLETED" ||
+    normalized === "CONFIRMED" ||
+    normalized === "SUCCESS" ||
+    normalized === "RED"
+  ) {
     return "OCCUPIED";
   }
 
@@ -292,6 +330,7 @@ const normalizeTeamCell = (cell, myTeamId) => {
         ? myTeamId
         : (cell?.pendingTeamId ?? cell?.processingTeamId ?? null),
     pendingTeamName: isProcessingOthers ? null : getPendingTeamName(cell),
+    occupiedTeamName: getOccupiedTeamName(cell),
     occupiedTeamId:
       borderType === "BLACK"
         ? myTeamId
@@ -500,6 +539,7 @@ function NewBingo() {
 
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [selectedTeamCell, setSelectedTeamCell] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -632,12 +672,22 @@ function NewBingo() {
   const handleOpenDetail = async (cellId, boardType) => {
     setSelectedCellId(cellId);
     setSelectedBoardType(boardType);
+
+    if (boardType === "team") {
+      const clickedTeamCell =
+        teamBoard.find((cell) => cell.cellId === cellId) || null;
+      setSelectedTeamCell(clickedTeamCell);
+    } else {
+      setSelectedTeamCell(null);
+    }
+
     await refreshSelectedDetail(cellId, boardType, myTeam);
   };
 
   const handleCloseDetail = () => {
     setSelectedCellId(null);
     setSelectedDetail(null);
+    setSelectedTeamCell(null);
   };
 
   const handleUploadClick = () => {
@@ -837,7 +887,20 @@ function NewBingo() {
               <MissionLabel>미션 내용 :</MissionLabel>
               <MissionText>{selectedDetail.missionDescription}</MissionText>
 
-              {selectedDetail.uploadedImageUrl ? (
+              {isTeamBoard ? (
+                selectedTeamCell?.uploadedImageUrl ? (
+                  selectedTeamCell?.isMine ? (
+                    <PreviewImage
+                      src={selectedTeamCell.uploadedImageUrl}
+                      alt={selectedDetail.missionTitle}
+                    />
+                  ) : (
+                    <TeamHiddenPlaceholder />
+                  )
+                ) : (
+                  <PreviewPlaceholder>사진</PreviewPlaceholder>
+                )
+              ) : selectedDetail.uploadedImageUrl ? (
                 <PreviewImage
                   src={selectedDetail.uploadedImageUrl}
                   alt={selectedDetail.missionTitle}
@@ -1213,4 +1276,11 @@ const Toast = styled.div`
   font-size: 14px;
   font-weight: 600;
   z-index: 12000;
+`;
+const TeamHiddenPlaceholder = styled.div`
+  width: 100%;
+  aspect-ratio: 1 / 0.72;
+  border-radius: 10px;
+  background: #d9d9d9;
+  margin-bottom: 18px;
 `;
