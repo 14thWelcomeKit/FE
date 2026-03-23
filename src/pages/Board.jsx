@@ -48,7 +48,6 @@ const BoardTextContainer = styled.div`
   text-align: left;
 
   @media (max-width: ${breakpoints.tablet}) {
-    // 태블릿부터 상단 텍스트(문의게시판~ 운영진 답변 시간) 가운데 정렬
     max-width: 100%;
     text-align: center;
   }
@@ -357,7 +356,6 @@ export default function Board() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // 현재 로그인된 userId (실제 인증 연동 시 교체)
   const userId = 1;
 
   const fetchComments = async (qnaId) => {
@@ -367,7 +365,7 @@ export default function Board() {
       const data = await res.json();
       return data.map((c) => ({
         id: c.id,
-        nickname: c.isAdminComment ? "운영진" : (c.user?.userName ?? "익명"),
+        nickname: c.isAdminComment ? "운영진" : "익명",
         content: c.content,
         time: formatDate(c.createdAt),
         isAdmin: c.isAdminComment,
@@ -389,7 +387,7 @@ export default function Board() {
           const comments = await fetchComments(p.id);
           return {
             id: p.id,
-            nickname: p.user?.userName ?? "익명",
+            nickname: "익명",
             content: p.content,
             title: p.title,
             time: formatDate(p.createdAt),
@@ -428,7 +426,7 @@ export default function Board() {
       const newP = await res.json();
       const converted = {
         id: newP.id,
-        nickname: newP.user?.userName ?? "익명",
+        nickname: "익명",
         content: newP.content,
         title: newP.title,
         time: formatDate(newP.createdAt),
@@ -486,9 +484,7 @@ export default function Board() {
       const newC = await res.json();
       const converted = {
         id: newC.id,
-        nickname: newC.isAdminComment
-          ? "운영진"
-          : (newC.user?.userName ?? "익명"),
+        nickname: newC.isAdminComment ? "운영진" : "익명",
         content: newC.content,
         time: formatDate(newC.createdAt),
         isAdmin: newC.isAdminComment,
