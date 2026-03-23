@@ -599,7 +599,7 @@ export default function Board() {
                       >
                         댓글 {post.comments.length}
                       </Button>
-                      <Button
+                      {/**<Button
                         onClick={() => deletePost(post.id)}
                         style={{
                           background: "rgba(255,60,60,0.15)",
@@ -607,7 +607,7 @@ export default function Board() {
                         }}
                       >
                         삭제
-                      </Button>
+                      </Button> */}
                     </ButtonRow>
 
                     {post.showCommentInput && (
@@ -658,7 +658,7 @@ export default function Board() {
                                 justifyContent: "flex-start",
                               }}
                             >
-                              <Button
+                              {/** <Button
                                 onClick={() =>
                                   deleteComment(post.id, comment.id)
                                 }
@@ -672,7 +672,7 @@ export default function Board() {
                                 }}
                               >
                                 삭제
-                              </Button>
+                              </Button> */}
                             </ButtonRow>
                           </PostBox>
                         ))}
