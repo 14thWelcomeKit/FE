@@ -30,11 +30,11 @@ const getErrorMessage = (error, fallback = "요청에 실패했습니다.") => {
 const getImageUrlByCellId = (cellId, imageUrl) => {
   if (imageUrl) {
     if (imageUrl.startsWith("http")) return imageUrl;
-    if (imageUrl.startsWith("/")) return `${API_BASE_URL}${imageUrl}`;
-    return imageUrl;
+    if (imageUrl.startsWith("/")) return imageUrl;
+    return `/${imageUrl}`;
   }
 
-  return `${API_BASE_URL}/v1/bingo/image/${cellId}`;
+  return `/api/v1/bingo/image/${cellId}`;
 };
 
 const getCellColor = (status) => {
@@ -207,8 +207,31 @@ const normalizeMyTeam = (raw) => {
   };
 };
 
+const getMissionTitle = (source, fallback = "") => {
+  return (
+    source?.mission?.title ??
+    source?.missionTitle ??
+    source?.title ??
+    source?.missionName ??
+    fallback
+  );
+};
+
+const getMissionDescription = (source, fallback = "") => {
+  return (
+    source?.mission?.description ??
+    source?.mission?.discription ??
+    source?.missionDescription ??
+    source?.description ??
+    source?.discription ??
+    source?.missionContent ??
+    fallback
+  );
+};
+
 const getPendingTeamName = (source) => {
   return (
+    source?.displayData?.teamName ??
     source?.pendingTeamName ??
     source?.processingTeamName ??
     source?.uploadTeamName ??
@@ -230,6 +253,7 @@ const getPendingTeamName = (source) => {
 
 const getOccupiedTeamName = (source) => {
   return (
+    source?.displayData?.teamName ??
     source?.occupiedTeamName ??
     source?.ownerTeamName ??
     source?.teamName ??
@@ -243,6 +267,38 @@ const getOccupiedTeamName = (source) => {
   );
 };
 
+const getRemainingTime = (source) => {
+  return (
+    source?.displayData?.remainingTime ??
+    source?.remainingTime ??
+    source?.remaining ??
+    null
+  );
+};
+
+const getUploadedImageUrl = (
+  source,
+  cellId,
+  rawStatus,
+  fallbackWhenExists = false,
+) => {
+  const imageUrl = source?.displayData?.imageUrl ?? source?.imageUrl ?? null;
+
+  if (imageUrl) {
+    return getImageUrlByCellId(cellId, imageUrl);
+  }
+
+  if (
+    fallbackWhenExists ||
+    rawStatus === "PROCESSING" ||
+    rawStatus === "OCCUPIED"
+  ) {
+    return getImageUrlByCellId(cellId);
+  }
+
+  return "";
+};
+
 const normalizeGlobalCell = (cell) => {
   const cellId = cell?.cellId ?? cell?.id;
   const rawStatus = cell?.status ?? cell?.cellStatus ?? cell?.state;
@@ -252,29 +308,18 @@ const normalizeGlobalCell = (cell) => {
     cell?.processStartedAt ??
     cell?.startedAt ??
     null;
-  const remainingTime = cell?.remainingTime ?? null;
+  const remainingTime = getRemainingTime(cell);
 
   return {
     cellId,
-    missionTitle:
-      cell?.missionTitle ??
-      cell?.title ??
-      cell?.missionName ??
-      `미션 ${cellId}`,
-    missionDescription:
-      cell?.missionDescription ??
-      cell?.description ??
-      cell?.missionContent ??
-      "",
+    missionTitle: getMissionTitle(cell, ""),
+    missionDescription: getMissionDescription(cell, ""),
     status: globalStatusToUiStatus(rawStatus),
     pendingTeamId: cell?.pendingTeamId ?? cell?.processingTeamId ?? null,
     pendingTeamName: getPendingTeamName(cell),
     occupiedTeamId: cell?.occupiedTeamId ?? cell?.teamId ?? null,
     occupiedTeamName: getOccupiedTeamName(cell),
-    uploadedImageUrl:
-      rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || cell?.imageUrl
-        ? getImageUrlByCellId(cellId, cell?.imageUrl)
-        : "",
+    uploadedImageUrl: getUploadedImageUrl(cell, cellId, rawStatus),
     uploadedAt,
     remainingTime,
     remainingSeconds:
@@ -283,6 +328,7 @@ const normalizeGlobalCell = (cell) => {
         : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: null,
     isMine: false,
+    statusLabel: cell?.displayData?.statusLabel ?? null,
   };
 };
 
@@ -307,22 +353,12 @@ const normalizeTeamCell = (cell, myTeamId) => {
       cell?.startedAt ??
       null);
 
-  const remainingTime = isProcessingOthers
-    ? null
-    : (cell?.remainingTime ?? null);
+  const remainingTime = isProcessingOthers ? null : getRemainingTime(cell);
 
   return {
     cellId,
-    missionTitle:
-      cell?.missionTitle ??
-      cell?.title ??
-      cell?.missionName ??
-      `미션 ${cellId}`,
-    missionDescription:
-      cell?.missionDescription ??
-      cell?.description ??
-      cell?.missionContent ??
-      "",
+    missionTitle: getMissionTitle(cell, `미션 ${cellId}`),
+    missionDescription: getMissionDescription(cell, ""),
     status: uiStatus,
     pendingTeamId: isProcessingOthers
       ? null
@@ -330,15 +366,15 @@ const normalizeTeamCell = (cell, myTeamId) => {
         ? myTeamId
         : (cell?.pendingTeamId ?? cell?.processingTeamId ?? null),
     pendingTeamName: isProcessingOthers ? null : getPendingTeamName(cell),
-    occupiedTeamName: getOccupiedTeamName(cell),
     occupiedTeamId:
       borderType === "BLACK"
         ? myTeamId
         : (cell?.occupiedTeamId ?? cell?.teamId ?? null),
     occupiedTeamName: getOccupiedTeamName(cell),
     uploadedImageUrl:
-      !isProcessingOthers && (borderType !== "NONE" || cell?.imageUrl)
-        ? getImageUrlByCellId(cellId, cell?.imageUrl)
+      !isProcessingOthers &&
+      (borderType !== "NONE" || cell?.imageUrl || cell?.displayData?.imageUrl)
+        ? getUploadedImageUrl(cell, cellId, borderType, true)
         : "",
     uploadedAt,
     remainingTime,
@@ -349,6 +385,7 @@ const normalizeTeamCell = (cell, myTeamId) => {
         : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: isProcessingOthers ? "NONE" : borderType,
     isMine: isProcessingOthers ? false : isMine,
+    statusLabel: cell?.displayData?.statusLabel ?? null,
   };
 };
 
@@ -361,29 +398,18 @@ const normalizeGlobalDetail = (detail) => {
     detail?.processStartedAt ??
     detail?.startedAt ??
     null;
-  const remainingTime = detail?.remainingTime ?? detail?.remaining ?? null;
+  const remainingTime = getRemainingTime(detail);
 
   return {
     cellId,
-    missionTitle:
-      detail?.missionTitle ??
-      detail?.title ??
-      detail?.missionName ??
-      `미션 ${cellId}`,
-    missionDescription:
-      detail?.missionDescription ??
-      detail?.description ??
-      detail?.missionContent ??
-      "",
+    missionTitle: getMissionTitle(detail, `미션 ${cellId}`),
+    missionDescription: getMissionDescription(detail, ""),
     status: globalStatusToUiStatus(rawStatus),
     pendingTeamId: detail?.pendingTeamId ?? detail?.processingTeamId ?? null,
     pendingTeamName: getPendingTeamName(detail),
     occupiedTeamId: detail?.occupiedTeamId ?? detail?.teamId ?? null,
     occupiedTeamName: getOccupiedTeamName(detail),
-    uploadedImageUrl:
-      rawStatus === "PROCESSING" || rawStatus === "OCCUPIED" || detail?.imageUrl
-        ? getImageUrlByCellId(cellId, detail?.imageUrl)
-        : "",
+    uploadedImageUrl: getUploadedImageUrl(detail, cellId, rawStatus),
     uploadedAt,
     remainingTime,
     remainingSeconds:
@@ -392,6 +418,7 @@ const normalizeGlobalDetail = (detail) => {
         : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: null,
     isMine: false,
+    statusLabel: detail?.displayData?.statusLabel ?? null,
   };
 };
 
@@ -416,22 +443,12 @@ const normalizeTeamDetail = (detail, myTeamId) => {
       detail?.startedAt ??
       null);
 
-  const remainingTime = isProcessingOthers
-    ? null
-    : (detail?.remainingTime ?? detail?.remaining ?? null);
+  const remainingTime = isProcessingOthers ? null : getRemainingTime(detail);
 
   return {
     cellId,
-    missionTitle:
-      detail?.missionTitle ??
-      detail?.title ??
-      detail?.missionName ??
-      `미션 ${cellId}`,
-    missionDescription:
-      detail?.missionDescription ??
-      detail?.description ??
-      detail?.missionContent ??
-      "",
+    missionTitle: getMissionTitle(detail, `미션 ${cellId}`),
+    missionDescription: getMissionDescription(detail, ""),
     status: uiStatus,
     pendingTeamId: isProcessingOthers
       ? null
@@ -445,8 +462,11 @@ const normalizeTeamDetail = (detail, myTeamId) => {
         : (detail?.occupiedTeamId ?? detail?.teamId ?? null),
     occupiedTeamName: getOccupiedTeamName(detail),
     uploadedImageUrl:
-      !isProcessingOthers && (borderType !== "NONE" || detail?.imageUrl)
-        ? getImageUrlByCellId(cellId, detail?.imageUrl)
+      !isProcessingOthers &&
+      (borderType !== "NONE" ||
+        detail?.imageUrl ||
+        detail?.displayData?.imageUrl)
+        ? getUploadedImageUrl(detail, cellId, borderType, true)
         : "",
     uploadedAt,
     remainingTime,
@@ -457,6 +477,7 @@ const normalizeTeamDetail = (detail, myTeamId) => {
         : parseRemainingSeconds(remainingTime, uploadedAt),
     borderType: isProcessingOthers ? "NONE" : borderType,
     isMine: isProcessingOthers ? false : isMine,
+    statusLabel: detail?.displayData?.statusLabel ?? null,
   };
 };
 
@@ -887,6 +908,16 @@ function NewBingo() {
               <MissionLabel>미션 내용 :</MissionLabel>
               <MissionText>{selectedDetail.missionDescription}</MissionText>
 
+              {selectedDetail.status === "PENDING" &&
+                selectedDetail.remainingTime && (
+                  <>
+                    <MissionLabel>남은 시간 :</MissionLabel>
+                    <MissionText>
+                      {formatRemainingTime(selectedDetail, now)}
+                    </MissionText>
+                  </>
+                )}
+
               {isTeamBoard ? (
                 selectedTeamCell?.uploadedImageUrl ? (
                   selectedTeamCell?.isMine ? (
@@ -1277,6 +1308,7 @@ const Toast = styled.div`
   font-weight: 600;
   z-index: 12000;
 `;
+
 const TeamHiddenPlaceholder = styled.div`
   width: 100%;
   aspect-ratio: 1 / 0.72;
