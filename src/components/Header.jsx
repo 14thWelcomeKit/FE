@@ -167,6 +167,12 @@ export default function Header() {
           >
             BOARD
           </HeaderText>
+          <HeaderText
+            active={location.pathname === "/gallery"}
+            onClick={() => handleNavigate("/gallery")}
+          >
+            GALLERY
+          </HeaderText>
         </MenuContainer>
         <LoginContainer>
           {isLoggedIn ? (
@@ -215,6 +221,9 @@ export default function Header() {
             </HeaderText>
             <HeaderText onClick={() => handleNavigate("/board")}>
               BOARD
+            </HeaderText>
+            <HeaderText onClick={() => handleNavigate("/gallery")}>
+              GALLERY
             </HeaderText>
           </MenuModal>
         </ModalOverlay>

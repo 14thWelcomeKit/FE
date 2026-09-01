@@ -12,6 +12,7 @@ import QRCodeScanner from "./pages/QRScanner";
 import Bingo from "./pages/Bingo";
 import Board from "./pages/Board";
 import Setting from "./pages/Setting";
+import Gallery from "./pages/Gallery";
 
 const RouterComponent = () => {
   return (
@@ -29,6 +30,7 @@ const RouterComponent = () => {
         <Route path="/qrcodescanner" element={<QRCodeScanner />} />
         <Route path="/bingo" element={<Bingo />} />
         <Route path="/board" element={<Board />} />
+        <Route path="/gallery" element={<Gallery />} />
         <Route path="/setting" element={<Setting />} />
       </Routes>
     </BrowserRouter>
