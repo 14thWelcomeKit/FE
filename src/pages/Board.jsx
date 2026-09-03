@@ -5,7 +5,7 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { BsExclamationTriangle } from "react-icons/bs";
 
-import axiosInstance from "./../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "./../axiosInstance";
 const API_URL = process.env.REACT_APP_API_URL;
 console.log("API_URL:", API_URL);
 const BoardContent = styled.div`
@@ -398,7 +398,7 @@ export default function Board() {
       );
       setPosts(converted);
     } catch (e) {
-      setError(e.message);
+      setError(getApiErrorMessage(e, "게시글을 불러오지 못했습니다."));
     } finally {
       setLoading(false);
     }
@@ -432,7 +432,7 @@ export default function Board() {
       setPosts((prev) => [converted, ...prev]);
       setText("");
     } catch (e) {
-      setError(e.message);
+      setError(getApiErrorMessage(e, "게시글 작성에 실패했습니다."));
     } finally {
       setSubmitting(false);
     }
@@ -444,7 +444,7 @@ export default function Board() {
       await axiosInstance.delete(`/qna/${id}?userId=${userId}`);
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch (e) {
-      setError(e.message);
+      setError(getApiErrorMessage(e, "게시글 삭제에 실패했습니다."));
     }
   };
 
@@ -492,7 +492,7 @@ export default function Board() {
         ),
       );
     } catch (e) {
-      setError(e.message);
+      setError(getApiErrorMessage(e, "댓글 작성에 실패했습니다."));
     }
   };
 
@@ -508,7 +508,7 @@ export default function Board() {
         ),
       );
     } catch (e) {
-      setError(e.message);
+      setError(getApiErrorMessage(e, "댓글 삭제에 실패했습니다."));
     }
   };
 

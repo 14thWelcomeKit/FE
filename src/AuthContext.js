@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setToken("");
-    cookies.remove("accessToken"); // 쿠키 삭제
+    cookies.remove("accessToken", { path: "/" }); // 쿠키 삭제
     setIsLoggedIn(false);
     console.log("로그아웃 실행됨:", { token: "", isLoggedIn: false });
   };

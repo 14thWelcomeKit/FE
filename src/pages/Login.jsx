@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const LoginContainer = styled.div`
   display: flex;
@@ -237,7 +237,7 @@ const CautionText = styled.h1`
 
 export default function Login() {
   const { saveToken } = useAuth();
-  const [id, setId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -251,12 +251,10 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await axiosInstance.post("/auth/sign-in",
-        {
-          studentNum: id,
-          password: password,
-        }
-      );
+      const response = await axiosInstance.post("/auth/sign-in", {
+        email: email,
+        password: password,
+      });
 
       const accessToken = response.data.accessToken;
       saveToken(accessToken);
@@ -264,8 +262,10 @@ export default function Login() {
       alert("로그인 성공!");
       navigate("/");
     } catch (error) {
+      const errMessage = getApiErrorMessage(error, "로그인에 실패했습니다.");
       console.error("로그인 실패:", error.response?.data || error.message);
-      alert("로그인에 실패했습니다.");
+      setError(errMessage);
+      alert(errMessage);
     }
   };
 
@@ -285,13 +285,14 @@ export default function Login() {
           <TitleText>로그인</TitleText>
           <MiddleText>
             한국외국어대학교 글로벌캠퍼스 <br />
-            멋쟁이 사자처럼 대학 홈페이지입니다.
+            멋쟁이사자처럼 대학 홈페이지입니다.
           </MiddleText>
-          <LoginText>ID</LoginText>
+          <LoginText>이메일</LoginText>
           <LoginInput
-            placeholder="아이디를 입력해주세요."
-            value={id}
-            onChange={(e) => setId(e.target.value)}
+            type="email"
+            placeholder="이메일을 입력해주세요."
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <LoginText>PW</LoginText>
           <LoginInput
