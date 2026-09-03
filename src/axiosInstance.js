@@ -13,6 +13,8 @@ const PUBLIC_AUTH_PATHS = [
   "/auth/sign-in",
   "/auth/email/send-code",
   "/auth/email/verify-code",
+  "/auth/reset-password/send-code",
+  "/auth/reset-password",
   "/user/join",
 ];
 
