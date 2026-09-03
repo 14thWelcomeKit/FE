@@ -123,13 +123,13 @@ const Page = styled.main`
 `;
 
 const Content = styled.div`
-  width: min(1040px, calc(100% - 40px));
+  width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
-  padding: 36px 0 72px;
+  padding: 40px 0 72px;
   box-sizing: border-box;
 
   @media (max-width: ${breakpoints.tablet}) {
-    width: min(338px, calc(100% - 52px));
+    width: calc(100% - 32px);
     padding: 24px 0 60px;
   }
 `;
@@ -154,10 +154,14 @@ const MetaRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  width: min(1040px, 100%);
+  min-height: 37px;
+  margin: 0 auto 18px;
 
   @media (max-width: ${breakpoints.tablet}) {
-    margin-bottom: 12px;
+    width: calc(100% - 32px);
+    min-height: 31px;
+    margin-bottom: 14px;
   }
 `;
 
@@ -221,70 +225,78 @@ const MobileLabel = styled.span`
 `;
 
 const MainPhoto = styled.div`
-  width: 80%;
-  height: 342px;
+  width: min(900px, 100%);
+  aspect-ratio: 15 / 8;
   margin: 0 auto;
   border-radius: 16px;
   background: ${({ $background }) => $background};
 
   @media (max-width: ${breakpoints.tablet}) {
-    width: 100%;
-    height: 208px;
-    border-radius: 10px;
+    width: calc(100% - 32px);
+    aspect-ratio: 326 / 260;
+    border-radius: 12px;
   }
 `;
 
 const ThumbnailList = styled.div`
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  width: min(688px, 100%);
+  margin: 12px auto 0;
 
   @media (max-width: ${breakpoints.tablet}) {
-    justify-content: flex-start;
-    gap: 8px;
-    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+    width: calc(100% - 32px);
+    margin-top: 12px;
   }
 `;
 
 const ThumbnailButton = styled.button`
-  width: 90px;
-  height: 58px;
+  width: 128px;
+  height: 80px;
   padding: 0;
   border: 2px solid ${({ $active }) => ($active ? "var(--orange)" : "transparent")};
-  border-radius: 8px;
+  border-radius: 10px;
   background: ${({ $background }) => $background};
   cursor: pointer;
 
   @media (max-width: ${breakpoints.tablet}) {
-    width: calc((100% - 32px) / 5);
-    height: 46px;
-    border-radius: 7px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 9px;
   }
 `;
 
 const DescriptionBox = styled.section`
-  width: 80%;
-  margin: 12px auto 0;
-  padding: 16px 18px;
-  border-radius: 10px;
+  width: min(900px, 100%);
+  min-height: 101px;
+  margin: 18px auto 0;
+  padding: 20px 24px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
 
   @media (max-width: ${breakpoints.tablet}) {
-    width: 100%;
+    width: calc(100% - 32px);
+    min-height: 82px;
     margin-top: 14px;
-    padding: 14px;
+    padding: 16px;
+    border-radius: 10px;
   }
 `;
 
 const DescriptionTitle = styled.h2`
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-family: Pretendard, sans-serif;
   font-size: 14px;
   font-weight: 600;
 
   @media (max-width: ${breakpoints.tablet}) {
+    margin-bottom: 10px;
     font-size: 12px;
   }
 `;

@@ -161,19 +161,19 @@ const Page = styled.main`
 `;
 
 const Content = styled.div`
-  width: min(1040px, calc(100% - 40px));
+  width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
   padding: 40px 0 72px;
   box-sizing: border-box;
 
   @media (max-width: ${breakpoints.tablet}) {
-    width: min(358px, calc(100% - 32px));
+    width: calc(100% - 32px);
     padding: 24px 0 52px;
   }
 `;
 
 const PageTitle = styled.h1`
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   font-family: Montserrat, Pretendard, sans-serif;
   font-size: 64px;
   font-weight: 700;
@@ -182,7 +182,7 @@ const PageTitle = styled.h1`
   text-align: center;
 
   @media (max-width: ${breakpoints.tablet}) {
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     font-size: 38px;
     letter-spacing: -1px;
   }
@@ -191,29 +191,51 @@ const PageTitle = styled.h1`
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  width: min(740px, 100%);
+  gap: 24px;
+  width: min(1040px, 100%);
+  min-height: 609px;
   margin: 0 auto;
-  padding: 28px 38px;
-  border-radius: 12px;
+  padding: 32px 52px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
 
   @media (max-width: ${breakpoints.tablet}) {
+    gap: 18px;
+    width: 100%;
+    min-height: 0;
     padding: 16px;
+    border-radius: 12px;
   }
 `;
 
 const Field = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
+
+  &:nth-of-type(2) {
+    gap: 24px;
+  }
+
+  @media (max-width: ${breakpoints.tablet}) {
+    gap: 7px;
+
+    &:nth-of-type(2) {
+      gap: 18px;
+    }
+  }
 `;
 
 const FieldHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 20px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    min-height: 18px;
+  }
 `;
 
 const FieldLabel = styled.label`
@@ -258,46 +280,61 @@ const fieldSurface = `
 
 const TextInput = styled.input`
   ${fieldSurface}
-  height: 48px;
-  padding: 0 14px;
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
   font-size: 13px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
 `;
 
 const TextArea = styled.textarea`
   ${fieldSurface}
-  min-height: 128px;
-  padding: 14px;
+  min-height: 180px;
+  padding: 16px;
+  border-radius: 10px;
   font-size: 13px;
   line-height: 1.5;
   resize: vertical;
 
   @media (max-width: ${breakpoints.tablet}) {
     min-height: 170px;
+    padding: 12px;
+    border-radius: 9px;
   }
 `;
 
 const PhotoList = styled.div`
   display: grid;
-  grid-template-columns: repeat(5, 100px);
-  gap: 8px;
+  grid-template-columns: repeat(5, 140px);
+  gap: 12px;
+  min-height: 104px;
 
   @media (max-width: ${breakpoints.tablet}) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 10px;
+    min-height: 84px;
+    align-content: start;
   }
 `;
 
 const PhotoTile = styled.div`
   position: relative;
-  width: 100px;
-  height: 74px;
+  width: 140px;
+  height: 104px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 10px;
   box-sizing: border-box;
 
   @media (max-width: ${breakpoints.tablet}) {
     width: 100%;
-    height: 85px;
+    height: auto;
+    aspect-ratio: 102 / 84;
+    border-radius: 9px;
   }
 `;
 
@@ -329,11 +366,11 @@ const ThumbnailBadge = styled.span`
 `;
 
 const AddPhotoButton = styled.button`
-  width: 100px;
-  height: 74px;
+  width: 140px;
+  height: 104px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.14);
   color: var(--white);
   font-family: Pretendard, sans-serif;
@@ -342,7 +379,9 @@ const AddPhotoButton = styled.button`
 
   @media (max-width: ${breakpoints.tablet}) {
     width: 100%;
-    height: 85px;
+    height: auto;
+    aspect-ratio: 102 / 84;
+    border-radius: 9px;
   }
 `;
 
@@ -361,10 +400,16 @@ const ButtonRow = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  min-height: 37px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    gap: 8px;
+    min-height: 31px;
+  }
 `;
 
 const ActionButton = styled.button`
-  min-height: 36px;
+  min-height: 37px;
   padding: 9px 18px;
   border: 0;
   border-radius: 999px;
@@ -373,6 +418,11 @@ const ActionButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    min-height: 31px;
+    padding: 8px 14px;
+  }
 `;
 
 const SecondaryButton = styled(ActionButton)`
