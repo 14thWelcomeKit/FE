@@ -5,6 +5,7 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { BsInstagram } from "react-icons/bs";
 import { SiVelog } from "react-icons/si";
+import { IoArrowUp } from "react-icons/io5";
 
 import introduce from "../images/introduce/introduce.png";
 import logo from "../images/introduce/RGB_LIKELION_UNIV_KR_WHITE.png";
@@ -449,7 +450,7 @@ const SocialContainer = styled(SideImage)`
   gap: 16px;
   max-width: 900px;
   width: auto;
-  padding-bottom: 10rem;
+  padding-bottom: 5rem;
 
   @media (max-width: ${breakpoints.tablet}) {
     flex-direction: column;
@@ -506,6 +507,38 @@ const SocialText = styled(Start)`
   }
 `;
 
+const TopButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10rem;
+  border: 1px solid var(--orange);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--orange);
+  font-size: 28px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background: var(--orange);
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+  }
+
+  @media (max-width: ${breakpoints.mobile}) {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+`;
+
 const SCROLL_IMAGES = [
   mopt,
   pium,
@@ -537,6 +570,10 @@ export default function Introduce() {
 
   const handleSocialClick = (url) => {
     window.location.href = url;
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -725,6 +762,9 @@ export default function Introduce() {
               </SocialText>
             </SocialItem>
           </SocialContainer>
+          <TopButton type="button" onClick={scrollToTop} aria-label="맨 위로 이동">
+            <IoArrowUp aria-hidden="true" />
+          </TopButton>
         </First>
       </Container >
     </>

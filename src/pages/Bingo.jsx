@@ -5,22 +5,19 @@ import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import { BsExclamationTriangle } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const HOLD_HOURS = 12;
 
-// ─── API helpers ────────────────────────────────────────────────────────────
-
-const getErrorMessage = (error, fallback = "요청에 실패했습니다.") =>
-  error?.response?.data?.message ||
-  error?.response?.data?.error ||
-  error?.message ||
-  fallback;
+const getErrorMessage = getApiErrorMessage;
 
 const resolveImageUrl = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
-  return `https://api.z0.co.kr${url.startsWith("/") ? "" : "/"}${url}`;
+
+  const serverUrl = process.env.REACT_APP_SERVER_URL;
+
+  return `${serverUrl}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
 // ─── normalizers ────────────────────────────────────────────────────────────

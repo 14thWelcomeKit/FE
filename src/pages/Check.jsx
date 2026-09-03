@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import ReactQRScanner from "react-qr-scanner";
 import CheckBoard from "../components/Board";
 import { IoMdClose } from "react-icons/io";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 import media from "styled-media-query";
 
 const TextContainer = styled.div`
@@ -183,6 +183,22 @@ const MessageBox = styled.div`
         : "#383d41"};
 `;
 
+function extractQrToken(qrData) {
+  if (!qrData) return "";
+  const raw = String(qrData).trim();
+
+  try {
+    const token = new URL(raw).searchParams.get("token");
+    if (token) return token;
+  } catch {
+    // QR 값이 전체 URL이 아닌 경우
+  }
+
+  const query = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : raw;
+  const token = new URLSearchParams(query).get("token");
+  return token || raw;
+}
+
 export default function Check() {
   const [modalType, setModalType] = useState(null); // 'qr' for generating, 'scan' for scanning
   const [qrImage, setQrImage] = useState(null);
@@ -212,15 +228,16 @@ export default function Check() {
       setQrImage(imageUrl);
     } catch (error) {
       console.error("Error fetching QR code:", error);
-      setMessage("QR 코드를 불러오는데 실패했습니다.");
+      setMessage(getApiErrorMessage(error, "QR 코드를 불러오는데 실패했습니다."));
       setMessageType("error");
     }
   };
 
   const sendQRDataToServer = async (qrData) => {
     try {
-      const response = await axiosInstance.post("/attendance/success", {
-        qrData,
+      const token = extractQrToken(qrData);
+      const response = await axiosInstance.post("/attendance/success", null, {
+        params: { token },
       });
 
       setMessage(`출석 성공: ${response.data.message}`);
@@ -235,7 +252,7 @@ export default function Check() {
     } catch (error) {
       console.error("서버 요청 실패:", error);
       setMessage(
-        "출석 처리 실패: " + (error.response?.data?.message || error.message)
+        getApiErrorMessage(error, "출석 처리에 실패했습니다.")
       );
       setMessageType("error");
     }
@@ -279,6 +296,8 @@ export default function Check() {
       setBoarddata(response.data);
     } catch (error) {
       console.error("Error fetching data:", error);
+      setMessage(getApiErrorMessage(error, "출석부 정보를 불러오지 못했습니다."));
+      setMessageType("error");
     }
   };
   return (

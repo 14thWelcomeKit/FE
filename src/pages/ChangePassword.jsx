@@ -4,7 +4,7 @@ import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const ChangePasswordContainer = styled.div`
   display: flex;
@@ -181,7 +181,7 @@ export default function ChangePassword() {
       alert("비밀번호가 성공적으로 변경되었습니다.");
       navigate("/mypage");
     } catch (error) {
-      alert("비밀번호 변경에 실패했습니다. 다시 시도해주세요.");
+      alert(getApiErrorMessage(error, "비밀번호 변경에 실패했습니다. 다시 시도해주세요."));
     }
   };
 

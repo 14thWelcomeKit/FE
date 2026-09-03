@@ -5,7 +5,7 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const SignContainer = styled.div`
   display: flex;
@@ -185,12 +185,76 @@ const CautionText = styled.h1`
   margin-left: 2rem;
 `;
 
+const ActionRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+`;
+
+const ActionInput = styled(LoginInput)`
+  flex: 1;
+  margin-bottom: 0.5rem;
+  min-width: 0;
+`;
+
+const ActionButton = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 3.25rem;
+  padding: 0 1rem;
+  border-radius: 3.125rem;
+  background-color: #ffff;
+  color: var(--orange);
+  font-family: Pretendard;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+
+  &:hover {
+    background-color: var(--orange);
+    color: #ffff;
+  }
+`;
+
+const SelectInput = styled.select`
+  display: flex;
+  height: 3.25rem;
+  width: 100%;
+  padding: 0.75rem 2rem;
+  align-items: center;
+  border-radius: 3.125rem;
+  box-sizing: border-box;
+  margin-bottom: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.19);
+  border-color: rgba(255, 255, 255, 0.19);
+  color: #ffff;
+  font-family: Pretendard;
+
+  &:focus {
+    border-color: #ffff;
+    color: #ffff;
+  }
+
+  option {
+    color: #000;
+  }
+`;
+
 export default function SignUp() {
   const [username, setUsername] = useState("");
   const [stunum, setStunum] = useState("");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [devPart, setDevPart] = useState("FRONT_END");
   const [password, setPassword] = useState("");
   const [checkpw, setCheckpw] = useState("");
   const [error, setError] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   const navigate = useNavigate();
 
@@ -202,34 +266,78 @@ export default function SignUp() {
     }
   }, [password, checkpw]);
 
-  const CheckMock = {
-    name: username,
-    studentNum: stunum,
-    password: password,
-    userType: "BABY_LION",
+  const handleEmailChange = (value) => {
+    setEmail(value);
+    setIsEmailVerified(false);
+  };
+
+  const handleSendCode = async () => {
+    if (!email) {
+      setError("이메일을 입력해주세요.");
+      return;
+    }
+
+    try {
+      await axiosInstance.post("/auth/email/send-code", { email });
+      setError("");
+      alert("인증코드가 발송되었습니다.");
+    } catch (err) {
+      const errMessage = getApiErrorMessage(err, "인증코드 발송에 실패했습니다.");
+      setError(errMessage);
+      alert(errMessage);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!email || !code) {
+      setError("이메일과 인증코드를 입력해주세요.");
+      return;
+    }
+
+    try {
+      await axiosInstance.post("/auth/email/verify-code", { email, code });
+      setIsEmailVerified(true);
+      setError("");
+      alert("이메일 인증이 완료되었습니다.");
+    } catch (err) {
+      setIsEmailVerified(false);
+      const errMessage = getApiErrorMessage(err, "인증코드 확인에 실패했습니다.");
+      setError(errMessage);
+      alert(errMessage);
+    }
   };
 
   const handleSubmit = async () => {
+    if (!isEmailVerified) {
+      setError("이메일 인증을 완료해주세요.");
+      alert("이메일 인증을 완료해주세요.");
+      return;
+    }
+
+    if (password !== checkpw) {
+      setError("비밀번호가 틀립니다.");
+      return;
+    }
+
     try {
-      const response = await axios.post("/user/join",
-        {
-          name: username,
-          studentNum: stunum,
-          password: password,
-          userType: "BABY_LION",
-          devPart: "FRONT_END",
-        }
-      );
+      const response = await axiosInstance.post("/user/join", {
+        name: username,
+        studentNum: stunum,
+        password: password,
+        email: email,
+        inviteCode: inviteCode,
+        devPart: devPart,
+      });
 
       console.log("회원가입 성공:", response.data);
       alert("회원가입이 완료되었습니다!");
-    } catch (error) {
-      console.error("회원가입 실패:", error.response?.data || error.message);
-      alert("회원가입에 실패했습니다.");
-      console.log(CheckMock);
+      navigate("/login");
+    } catch (err) {
+      const errMessage = getApiErrorMessage(err, "회원가입에 실패했습니다.");
+      console.error("회원가입 실패:", err.response?.data || err.message);
+      setError(errMessage);
+      alert(errMessage);
     }
-
-    navigate("/login");
   };
 
   return (
@@ -258,6 +366,42 @@ export default function SignUp() {
             value={stunum}
             onChange={(e) => setStunum(e.target.value)}
           />
+          <LoginText>이메일</LoginText>
+          <ActionRow>
+            <ActionInput
+              type="email"
+              placeholder="이메일을 입력해주세요."
+              value={email}
+              onChange={(e) => handleEmailChange(e.target.value)}
+            />
+            <ActionButton onClick={handleSendCode}>인증코드 발송</ActionButton>
+          </ActionRow>
+          <LoginText>인증코드</LoginText>
+          <ActionRow>
+            <ActionInput
+              placeholder="인증코드를 입력해주세요."
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <ActionButton onClick={handleVerifyCode}>인증 확인</ActionButton>
+          </ActionRow>
+          {isEmailVerified && (
+            <CautionText>이메일 인증이 완료되었습니다.</CautionText>
+          )}
+          <LoginText>초대코드</LoginText>
+          <LoginInput
+            placeholder="운영진 초대코드가 있다면 입력해주세요."
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+          />
+          <LoginText>파트</LoginText>
+          <SelectInput
+            value={devPart}
+            onChange={(e) => setDevPart(e.target.value)}
+          >
+            <option value="FRONT_END">FRONT_END</option>
+            <option value="BACK_END">BACK_END</option>
+          </SelectInput>
           <LoginText>PW</LoginText>
           <LoginInput
             placeholder="비밀번호를 입력해주세요."
