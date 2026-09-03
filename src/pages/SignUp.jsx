@@ -6,6 +6,10 @@ import Header from "../components/Header";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
 import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
+import {
+  getSchoolEmailError,
+  normalizeEmail,
+} from "../utils/emailValidation";
 
 const SignContainer = styled.div`
   display: flex;
@@ -272,13 +276,19 @@ export default function SignUp() {
   };
 
   const handleSendCode = async () => {
-    if (!email) {
-      setError("이메일을 입력해주세요.");
+    const validationError = getSchoolEmailError(email);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    const normalizedEmail = normalizeEmail(email);
     try {
-      await axiosInstance.post("/auth/email/send-code", { email });
+      await axiosInstance.post("/auth/email/send-code", {
+        email: normalizedEmail,
+      });
+      setEmail(normalizedEmail);
+      setIsEmailVerified(false);
       setError("");
       alert("인증코드가 발송되었습니다.");
     } catch (err) {
@@ -289,13 +299,24 @@ export default function SignUp() {
   };
 
   const handleVerifyCode = async () => {
-    if (!email || !code) {
-      setError("이메일과 인증코드를 입력해주세요.");
+    const validationError = getSchoolEmailError(email);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    if (!code.trim()) {
+      setError("인증코드를 입력해주세요.");
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail(email);
     try {
-      await axiosInstance.post("/auth/email/verify-code", { email, code });
+      await axiosInstance.post("/auth/email/verify-code", {
+        email: normalizedEmail,
+        code: code.trim(),
+      });
+      setEmail(normalizedEmail);
       setIsEmailVerified(true);
       setError("");
       alert("이메일 인증이 완료되었습니다.");
@@ -308,6 +329,12 @@ export default function SignUp() {
   };
 
   const handleSubmit = async () => {
+    const validationError = getSchoolEmailError(email);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     if (!isEmailVerified) {
       setError("이메일 인증을 완료해주세요.");
       alert("이메일 인증을 완료해주세요.");
@@ -324,7 +351,7 @@ export default function SignUp() {
         name: username,
         studentNum: stunum,
         password: password,
-        email: email,
+        email: normalizeEmail(email),
         inviteCode: inviteCode,
         devPart: devPart,
       });
@@ -404,12 +431,14 @@ export default function SignUp() {
           </SelectInput>
           <LoginText>PW</LoginText>
           <LoginInput
+            type="password"
             placeholder="비밀번호를 입력해주세요."
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <LoginText>PW 중복확인</LoginText>
           <LoginInput
+            type="password"
             placeholder="다시 한 번 비밀번호를 입력해주세요."
             value={checkpw}
             onChange={(e) => setCheckpw(e.target.value)}

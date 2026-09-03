@@ -163,6 +163,29 @@ const LoginButton = styled.div`
 //   cursor: pointer;
 // `;
 
+const AccountLinks = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ffff;
+  font-family: Pretendard;
+  font-size: 0.875rem;
+`;
+
+const AccountLink = styled.button`
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--orange);
+  }
+`;
+
 const CircleContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -304,6 +327,18 @@ export default function Login() {
           {error && <CautionText>{error}</CautionText>}
           <ButtonContainer>
             <LoginButton onClick={handleLogin}>LOGIN</LoginButton>
+            <AccountLinks>
+              <AccountLink type="button" onClick={() => navigate("/signup")}>
+                회원가입
+              </AccountLink>
+              <span aria-hidden="true">|</span>
+              <AccountLink
+                type="button"
+                onClick={() => navigate("/reset-password")}
+              >
+                비밀번호 재설정
+              </AccountLink>
+            </AccountLinks>
             {/*             
             <InfoContainer>
               <InfoText>아이디가 없으신가요?</InfoText>

@@ -4,6 +4,7 @@ import Main from "./pages/Main";
 import Introduce from "./pages/Introduce";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import ResetPassword from "./pages/ResetPassword";
 import MyPage from "./pages/MyPage";
 import ProfileImage from "./pages/ProfileImage";
 import ChangePassword from "./pages/ChangePassword";
@@ -37,6 +38,7 @@ const RouterComponent = () => {
         <Route path="/introduce" element={<Introduce />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/gallery/create" element={<GalleryCreate />} />
         <Route path="/gallery/:galleryId" element={<GalleryDetail />} />
