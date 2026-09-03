@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
@@ -7,20 +8,56 @@ const ITEMS_PER_PAGE = 12;
 const VISIBLE_PAGE_COUNT = 3;
 const CATEGORIES = ["전체", "14기", "13기", "12기"];
 
-const GALLERY_ALBUMS = [
-  { id: 1, title: "14기 오리엔테이션", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 2, title: "첫 번째 미니프로젝트", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 3, title: "웹 개발 스터디", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 4, title: "14기 중간 회고", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 5, title: "알고리즘 세션", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 6, title: "해커톤 24시간", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 7, title: "프로젝트 중간 발표", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 8, title: "봄 소풍", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 9, title: "디자인 시스템 워크숍", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 10, title: "기술 특강", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 11, title: "14기 종강 파티", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
-  { id: 12, title: "팀 프로젝트 마무리", date: "2026. 08. 31", generation: 14, thumbnailUrl: "" },
+const ALBUM_TITLES = [
+  "14기 오리엔테이션",
+  "첫 번째 미니프로젝트",
+  "웹 개발 스터디",
+  "14기 중간 회고",
+  "알고리즘 세션",
+  "해커톤 24시간",
+  "프로젝트 중간 발표",
+  "봄 소풍",
+  "디자인 시스템 워크숍",
+  "기술 특강",
+  "14기 종강 파티",
+  "팀 프로젝트 마무리",
 ];
+
+export const GALLERY_BACKGROUNDS = [
+  "linear-gradient(110deg, #263844 0%, #6a3b2c 43%, #ff5b00 100%)",
+  "linear-gradient(110deg, #00355d 0%, #244f75 55%, #7898af 100%)",
+  "linear-gradient(110deg, #004667 0%, #3e7d9f 58%, #84b7c8 100%)",
+  "linear-gradient(110deg, #2f292d 0%, #8e432a 56%, #f05a00 100%)",
+  "linear-gradient(110deg, #00384d 0%, #36647f 60%, #93a9bb 100%)",
+  "linear-gradient(110deg, #17364c 0%, #8a4c38 55%, #ea5a00 100%)",
+  "linear-gradient(110deg, #063d76 0%, #315c96 54%, #6688b8 100%)",
+  "linear-gradient(110deg, #12623d 0%, #47844d 52%, #89be61 100%)",
+  "linear-gradient(110deg, #3a2448 0%, #754c85 54%, #a968bb 100%)",
+  "linear-gradient(110deg, #18344e 0%, #9b5d2d 52%, #f37a00 100%)",
+  "linear-gradient(110deg, #371d26 0%, #91452c 55%, #ed6500 100%)",
+  "linear-gradient(110deg, #004352 0%, #338497 55%, #68b4b5 100%)",
+];
+
+export const GALLERY_ALBUMS = Array.from({ length: 36 }, (_, index) => {
+  const generation = index < 12 ? 14 : index < 24 ? 13 : 12;
+  const title = ALBUM_TITLES[index % ALBUM_TITLES.length].replace(
+    "14기",
+    `${generation}기`,
+  );
+
+  return {
+    id: index + 1,
+    title,
+    date: `2026. 08. ${String(31 - Math.floor(index / 12)).padStart(2, "0")}`,
+    generation,
+    thumbnailUrl: "",
+    background: GALLERY_BACKGROUNDS[index % GALLERY_BACKGROUNDS.length],
+    content:
+      `${generation}기 멋쟁이사자처럼의 첫 만남을 기록합니다. ` +
+      "함께 웃고 이야기하며 새로운 시작을 준비했던 순간입니다.",
+    photos: GALLERY_BACKGROUNDS.slice(0, 5),
+  };
+});
 
 const resolveThumbnailUrl = (thumbnailUrl) => {
   if (!thumbnailUrl) return "";
@@ -44,6 +81,7 @@ const getVisiblePages = (currentPage, totalPages) => {
 };
 
 export default function Gallery() {
+  const navigate = useNavigate();
   const contentRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
@@ -96,19 +134,24 @@ export default function Gallery() {
             <PageDescription>우리의 순간을 기록합니다</PageDescription>
           </TitleBlock>
 
-          <CategoryTabs aria-label="기수 선택">
-            {CATEGORIES.map((category) => (
-              <CategoryButton
-                key={category}
-                type="button"
-                $active={selectedCategory === category}
-                aria-pressed={selectedCategory === category}
-                onClick={() => handleCategoryChange(category)}
-              >
-                {category}
-              </CategoryButton>
-            ))}
-          </CategoryTabs>
+          <ControlsRow>
+            <CategoryTabs aria-label="기수 선택">
+              {CATEGORIES.map((category) => (
+                <CategoryButton
+                  key={category}
+                  type="button"
+                  $active={selectedCategory === category}
+                  aria-pressed={selectedCategory === category}
+                  onClick={() => handleCategoryChange(category)}
+                >
+                  {category}
+                </CategoryButton>
+              ))}
+            </CategoryTabs>
+            <CreateButton type="button" onClick={() => navigate("/gallery/create")}>
+              사진 글 작성하기
+            </CreateButton>
+          </ControlsRow>
 
           {currentAlbums.length > 0 ? (
             <GalleryGrid>
@@ -116,8 +159,14 @@ export default function Gallery() {
                 const thumbnailSrc = resolveThumbnailUrl(album.thumbnailUrl);
 
                 return (
-                  <GalleryCard key={album.id}>
-                    <ThumbnailArea>
+                  <GalleryCard
+                    key={album.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(`/gallery/${album.id}`, { state: { album } })
+                    }
+                  >
+                    <ThumbnailArea $background={album.background}>
                       {thumbnailSrc && (
                         <ThumbnailImage
                           src={thumbnailSrc}
@@ -250,10 +299,22 @@ const CategoryTabs = styled.div`
   justify-content: center;
   align-items: center;
   gap: 12px;
+  @media (max-width: ${breakpoints.tablet}) {
+    gap: 8px;
+  }
+`;
+
+const ControlsRow = styled.div`
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-top: 28px;
 
   @media (max-width: ${breakpoints.tablet}) {
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
     margin-top: 16px;
   }
 `;
@@ -279,6 +340,30 @@ const CategoryButton = styled.button`
   }
 `;
 
+const CreateButton = styled.button`
+  position: absolute;
+  right: 10px;
+  min-height: 37px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--white);
+  font-family: Pretendard, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    position: static;
+    align-self: flex-end;
+    min-height: 31px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+`;
+
 const GalleryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -297,12 +382,16 @@ const GalleryGrid = styled.div`
   }
 `;
 
-const GalleryCard = styled.article`
+const GalleryCard = styled.button`
   min-width: 0;
   height: 240px;
+  padding: 0;
   overflow: hidden;
+  border: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.1);
+  text-align: left;
+  cursor: pointer;
 
   @media (max-width: ${breakpoints.tablet}) {
     display: flex;
@@ -316,7 +405,8 @@ const ThumbnailArea = styled.div`
   width: 100%;
   height: 160px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
+  background: ${({ $background }) =>
+    $background || "rgba(255, 255, 255, 0.08)"};
 
   @media (max-width: ${breakpoints.tablet}) {
     width: 104px;

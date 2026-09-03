@@ -13,6 +13,9 @@ import Bingo from "./pages/Bingo";
 import Board from "./pages/Board";
 import Setting from "./pages/Setting";
 import Gallery from "./pages/Gallery";
+import GalleryCreate from "./pages/GalleryCreate";
+import GalleryDetail from "./pages/GalleryDetail";
+import GalleryEdit from "./pages/GalleryEdit";
 import { useAuth } from "./AuthContext";
 
 function RequireAuth() {
@@ -35,6 +38,9 @@ const RouterComponent = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/gallery/create" element={<GalleryCreate />} />
+        <Route path="/gallery/:galleryId" element={<GalleryDetail />} />
+        <Route path="/gallery/:galleryId/edit" element={<GalleryEdit />} />
         <Route path="/setting" element={<Setting />} />
         <Route element={<RequireAuth />}>
           <Route path="/mypage" element={<MyPage />} />
