@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { Cookies } from "react-cookie";
+import axiosInstance from "./axiosInstance";
 
 // Context 생성
 const AuthContext = createContext();
@@ -9,6 +10,8 @@ export function AuthProvider({ children }) {
   const cookies = new Cookies();
   const [isLoggedIn, setIsLoggedIn] = useState(!!cookies.get("accessToken"));
   const [token, setToken] = useState(cookies.get("accessToken") || ""); // 쿠키에서 accessToken 가져옴
+  const [userType, setUserType] = useState(null);
+  const [checkedToken, setCheckedToken] = useState(null);
 
   useEffect(() => {
     setIsLoggedIn(!!token);
@@ -21,6 +24,47 @@ export function AuthProvider({ children }) {
       setIsLoggedIn(true);
     }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setUserType(null);
+    setCheckedToken(null);
+
+    if (!token) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fetchUserType = async () => {
+      try {
+        const response = await axiosInstance.get("/user/info");
+
+        if (!cancelled) {
+          setUserType(response.data.userType);
+        }
+      } catch {
+        if (!cancelled) {
+          setUserType(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckedToken(token);
+        }
+      }
+    };
+
+    fetchUserType();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const isUserInfoLoading = Boolean(token) && checkedToken !== token;
+  const isAdmin =
+    Boolean(token) && checkedToken === token && userType === "ADMIN";
 
   const saveToken = (newToken) => {
     setToken(newToken);
@@ -36,7 +80,17 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, isLoggedIn, saveToken, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        isLoggedIn,
+        userType,
+        isAdmin,
+        isUserInfoLoading,
+        saveToken,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

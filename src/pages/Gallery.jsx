@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
+import { useAuth } from "../AuthContext";
 
 const ITEMS_PER_PAGE = 12;
 const VISIBLE_PAGE_COUNT = 3;
@@ -82,6 +83,7 @@ const getVisiblePages = (currentPage, totalPages) => {
 
 export default function Gallery() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const contentRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [currentPage, setCurrentPage] = useState(1);
@@ -148,9 +150,14 @@ export default function Gallery() {
                 </CategoryButton>
               ))}
             </CategoryTabs>
-            <CreateButton type="button" onClick={() => navigate("/gallery/create")}>
-              사진 글 작성하기
-            </CreateButton>
+            {isAdmin && (
+              <CreateButton
+                type="button"
+                onClick={() => navigate("/gallery/create")}
+              >
+                사진 글 작성하기
+              </CreateButton>
+            )}
           </ControlsRow>
 
           {currentAlbums.length > 0 ? (

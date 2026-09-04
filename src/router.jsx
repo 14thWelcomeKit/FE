@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 import Main from "./pages/Main";
 import Introduce from "./pages/Introduce";
 import Login from "./pages/Login";
@@ -28,21 +34,42 @@ function RequireAuth() {
   return <Outlet />;
 }
 
+function RequireAdmin() {
+  const { isAdmin, isUserInfoLoading } = useAuth();
+
+  if (isUserInfoLoading) {
+    return null;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/gallery" replace />;
+  }
+
+  return <Outlet />;
+}
+
 const RouterComponent = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* 로그인 없이 접근 가능 */}
         <Route path="/" element={<Main />} />
         <Route path="/main" element={<Main />} />
         <Route path="/introduce" element={<Introduce />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/gallery/create" element={<GalleryCreate />} />
-        <Route path="/gallery/:galleryId" element={<GalleryDetail />} />
-        <Route path="/gallery/:galleryId/edit" element={<GalleryEdit />} />
         <Route path="/setting" element={<Setting />} />
+
+        {/* 로그인한 사용자만 접근 가능 */}
         <Route element={<RequireAuth />}>
+          <Route path="/gallery/:galleryId" element={<GalleryDetail />} />
+
+          <Route element={<RequireAdmin />}>
+            <Route path="/gallery/create" element={<GalleryCreate />} />
+            <Route path="/gallery/:galleryId/edit" element={<GalleryEdit />} />
+          </Route>
+
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/change-profile" element={<ProfileImage />} />
           <Route path="/change-password" element={<ChangePassword />} />
