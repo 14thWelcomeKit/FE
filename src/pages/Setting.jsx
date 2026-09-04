@@ -42,7 +42,7 @@ export default function Setting() {
       <ChooseButton onClick={() => gotoPage("/bingo")}>Bingo</ChooseButton>
       {/* 연동 확인 */}
       <ChooseButton onClick={() => gotoPage("/login")}>Login</ChooseButton>
-      <ChooseButton onClick={() => gotoPage("/check")}>Check</ChooseButton>
+      <ChooseButton onClick={() => gotoPage("/attendance")}>Attendance</ChooseButton>
     </PageContainer>
   );
 }

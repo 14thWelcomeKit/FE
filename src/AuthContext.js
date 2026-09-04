@@ -1,28 +1,36 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { Cookies } from "react-cookie";
-import axiosInstance from "./axiosInstance";
+import axiosInstance, { AUTH_UNAUTHORIZED_EVENT } from "./axiosInstance";
 
 // Context 생성
 const AuthContext = createContext();
+const cookies = new Cookies();
 
 // AuthProvider 생성
 export function AuthProvider({ children }) {
-  const cookies = new Cookies();
   const [isLoggedIn, setIsLoggedIn] = useState(!!cookies.get("accessToken"));
   const [token, setToken] = useState(cookies.get("accessToken") || ""); // 쿠키에서 accessToken 가져옴
   const [userType, setUserType] = useState(null);
   const [checkedToken, setCheckedToken] = useState(null);
+  const [userInfoError, setUserInfoError] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(!!token);
   }, [token]);
 
   useEffect(() => {
-    const storedToken = cookies.get("accessToken");
-    if (storedToken) {
-      setToken(storedToken);
-      setIsLoggedIn(true);
-    }
+    const handleUnauthorized = () => {
+      setUserType(null);
+      setCheckedToken(null);
+      setUserInfoError(false);
+      setToken("");
+      setIsLoggedIn(false);
+    };
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
   }, []);
 
   useEffect(() => {
@@ -30,6 +38,7 @@ export function AuthProvider({ children }) {
 
     setUserType(null);
     setCheckedToken(null);
+    setUserInfoError(false);
 
     if (!token) {
       return () => {
@@ -42,11 +51,13 @@ export function AuthProvider({ children }) {
         const response = await axiosInstance.get("/user/info");
 
         if (!cancelled) {
-          setUserType(response.data.userType);
+          setUserType(response.data?.userType ?? null);
+          setUserInfoError(false);
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setUserType(null);
+          setUserInfoError(error.response?.status !== 401);
         }
       } finally {
         if (!cancelled) {
@@ -67,12 +78,18 @@ export function AuthProvider({ children }) {
     Boolean(token) && checkedToken === token && userType === "ADMIN";
 
   const saveToken = (newToken) => {
+    setUserType(null);
+    setCheckedToken(null);
+    setUserInfoError(false);
     setToken(newToken);
     cookies.set("accessToken", newToken, { path: "/", sameSite: "Lax" }); // ✅ sameSite 추가
     setIsLoggedIn(true);
   };
 
   const logout = () => {
+    setUserType(null);
+    setCheckedToken(null);
+    setUserInfoError(false);
     setToken("");
     cookies.remove("accessToken", { path: "/" }); // 쿠키 삭제
     setIsLoggedIn(false);
@@ -87,6 +104,7 @@ export function AuthProvider({ children }) {
         userType,
         isAdmin,
         isUserInfoLoading,
+        userInfoError,
         saveToken,
         logout,
       }}

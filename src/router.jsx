@@ -14,7 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import MyPage from "./pages/MyPage";
 import ProfileImage from "./pages/ProfileImage";
 import ChangePassword from "./pages/ChangePassword";
-import Check from "./pages/Check";
+import Attendance from "./pages/Attendance";
 import QRCodeScanner from "./pages/QRScanner";
 import Bingo from "./pages/Bingo";
 import Board from "./pages/Board";
@@ -36,10 +36,14 @@ function RequireAuth() {
 }
 
 function RequireAdmin() {
-  const { isAdmin, isUserInfoLoading } = useAuth();
+  const { isAdmin, isUserInfoLoading, userInfoError } = useAuth();
 
   if (isUserInfoLoading) {
     return null;
+  }
+
+  if (userInfoError) {
+    return <div role="alert">사용자 정보를 불러오지 못했습니다.</div>;
   }
 
   if (!isAdmin) {
@@ -75,7 +79,7 @@ const RouterComponent = () => {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/change-profile" element={<ProfileImage />} />
           <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/check" element={<Check />} />
+          <Route path="/attendance" element={<Attendance />} />
           <Route path="/qrcodescanner" element={<QRCodeScanner />} />
           <Route path="/bingo" element={<Bingo />} />
           <Route path="/board" element={<Board />} />

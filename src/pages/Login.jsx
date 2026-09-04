@@ -77,7 +77,9 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
     try {
       const response = await axiosInstance.post("/auth/sign-in", {
         email,
@@ -122,7 +124,7 @@ export default function Login() {
           </TextOverlay>
         </CircleContainer>
 
-        <AuthContainer>
+        <AuthContainer as="form" onSubmit={handleLogin}>
           <AuthTitle>로그인</AuthTitle>
 
           <MiddleText>
@@ -151,7 +153,7 @@ export default function Login() {
           {error && <AuthCautionText>{error}</AuthCautionText>}
 
           <AuthButtonContainer>
-            <AuthButton type="button" onClick={handleLogin}>
+            <AuthButton type="submit">
               LOGIN
             </AuthButton>
 

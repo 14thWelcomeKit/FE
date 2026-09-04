@@ -2,6 +2,7 @@ import axios from "axios";
 import { Cookies } from "react-cookie";
 
 const cookies = new Cookies(); // ✅ 전역에서 쿠키 인스턴스 생성
+export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 
 const rawBase = process.env.REACT_APP_API_URL;
 
@@ -60,6 +61,7 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401 && !isPublicAuthRequest(requestUrl)) {
       cookies.remove("accessToken", { path: "/" });
+      window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
     }
 
     return Promise.reject(error);
