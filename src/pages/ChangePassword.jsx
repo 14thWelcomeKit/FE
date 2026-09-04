@@ -5,6 +5,7 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
 import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
+import { AuthPasswordInput } from "../components/AuthComponents";
 
 const ChangePasswordContainer = styled.div`
   display: flex;
@@ -80,27 +81,6 @@ const Label = styled.label`
 
   @media (max-width: ${breakpoints.mobile}) {
     font-size: 1rem;
-  }
-`;
-
-const Input = styled.input`
-  width: 100%;
-  height: 3.25rem;
-  padding: 0 1.5rem;
-  border-radius: 3.125rem;
-  border: none;
-  background: rgba(255, 255, 255, 0.19);
-  color: #ffff;
-  font-family: Pretendard;
-  font-size: 1rem;
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  @media (max-width: ${breakpoints.mobile}) {
-    height: 2.75rem;
-    font-size: 0.875rem;
   }
 `;
 
@@ -193,9 +173,9 @@ export default function ChangePassword() {
           <Title>비밀번호 변경</Title>
           <Form onSubmit={handleSubmit}>
             <InputGroup>
-              <Label>현재 비밀번호</Label>
-              <Input
-                type="password"
+              <Label htmlFor="current-password">현재 비밀번호</Label>
+              <AuthPasswordInput
+                id="current-password"
                 name="currentPassword"
                 value={formData.currentPassword}
                 onChange={handleChange}
@@ -207,9 +187,9 @@ export default function ChangePassword() {
             </InputGroup>
 
             <InputGroup>
-              <Label>새 비밀번호</Label>
-              <Input
-                type="password"
+              <Label htmlFor="new-password">새 비밀번호</Label>
+              <AuthPasswordInput
+                id="new-password"
                 name="newPassword"
                 value={formData.newPassword}
                 onChange={handleChange}
@@ -221,9 +201,9 @@ export default function ChangePassword() {
             </InputGroup>
 
             <InputGroup>
-              <Label>새 비밀번호 확인</Label>
-              <Input
-                type="password"
+              <Label htmlFor="confirm-password">새 비밀번호 확인</Label>
+              <AuthPasswordInput
+                id="confirm-password"
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}

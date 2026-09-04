@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+// import { useState, useEffect } from "react";
 import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
@@ -6,9 +6,9 @@ import Header from "../components/Header";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
-import WelcomeModal from "../components/WelcomeModal";
-import axiosInstance from "../axiosInstance";
-import { useAuth } from "../AuthContext";
+// import WelcomeModal from "../components/WelcomeModal";
+// import axiosInstance from "../axiosInstance";
+// import { useAuth } from "../AuthContext";
 
 const TextContainer = styled.div`
   display: flex;
@@ -170,27 +170,27 @@ const TextOverlay = styled.h1`
 
 export default function Main() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
-  const [hasReadWelcome, setHasReadWelcome] = useState(true);
+  // const { isLoggedIn } = useAuth();
+  // const [hasReadWelcome, setHasReadWelcome] = useState(true);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      const fetchUserInfo = async () => {
-        try {
-          const res = await axiosInstance.get("/user/info");
-          if (res.data && res.data.hasReadWelcome === false) {
-            setHasReadWelcome(false);
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      };
+  // useEffect(() => {
+  //   if (isLoggedIn) {
+  //     const fetchUserInfo = async () => {
+  //       try {
+  //         const res = await axiosInstance.get("/user/info");
+  //         if (res.data && res.data.hasReadWelcome === false) {
+  //           setHasReadWelcome(false);
+  //         }
+  //       } catch (err) {
+  //         console.error(err);
+  //       }
+  //     };
 
-      fetchUserInfo();
-    } else {
-      setHasReadWelcome(true);
-    }
-  }, [isLoggedIn]);
+  //     fetchUserInfo();
+  //   } else {
+  //     setHasReadWelcome(true);
+  //   }
+  // }, [isLoggedIn]);
 
   return (
     <>
@@ -220,7 +220,7 @@ export default function Main() {
           </TextOverlay>
         </CircleContainer>
       </PageContainer>
-      {!hasReadWelcome && <WelcomeModal onClose={() => setHasReadWelcome(true)} isDismiss={hasReadWelcome} />}
+      {/* {!hasReadWelcome && <WelcomeModal onClose={() => setHasReadWelcome(true)} isDismiss={hasReadWelcome} />} */}
     </>
   );
 }
