@@ -24,7 +24,6 @@ export default function GalleryEdit() {
     (item) => item.id === Number(galleryId),
   );
   const album = location.state?.album || fallbackAlbum || GALLERY_ALBUMS[0];
-  const isAuthor = location.state?.isAuthor ?? true;
   const [title, setTitle] = useState(album.title);
   const [content, setContent] = useState(album.content || "");
   const [photos, setPhotos] = useState(() =>
@@ -33,7 +32,6 @@ export default function GalleryEdit() {
     ),
   );
   const [photoError, setPhotoError] = useState("");
-  const [permissionDialog, setPermissionDialog] = useState(!isAuthor);
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -79,10 +77,6 @@ export default function GalleryEdit() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!isAuthor) {
-      setPermissionDialog(true);
-      return;
-    }
     navigate(`/gallery/${album.id}`);
   };
 
@@ -171,19 +165,6 @@ export default function GalleryEdit() {
         </Content>
       </Page>
 
-      {permissionDialog && (
-        <DialogOverlay>
-          <DialogBox role="dialog" aria-modal="true">
-            <DialogMessage>작성자만 수정할 수 있습니다.</DialogMessage>
-            <DialogButton
-              type="button"
-              onClick={() => navigate(`/gallery/${album.id}`)}
-            >
-              확인
-            </DialogButton>
-          </DialogBox>
-        </DialogOverlay>
-      )}
     </>
   );
 }
@@ -454,44 +435,4 @@ const SecondaryButton = styled(ActionButton)`
 
 const PrimaryButton = styled(ActionButton)`
   background: var(--orange);
-`;
-
-const DialogOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.66);
-  box-sizing: border-box;
-`;
-
-const DialogBox = styled.div`
-  width: min(360px, 100%);
-  padding: 28px;
-  border-radius: 14px;
-  background: #263b4e;
-  text-align: center;
-  box-sizing: border-box;
-`;
-
-const DialogMessage = styled.p`
-  margin: 0 0 24px;
-  font-family: Pretendard, sans-serif;
-  font-size: 15px;
-`;
-
-const DialogButton = styled.button`
-  min-width: 72px;
-  padding: 9px 18px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--orange);
-  color: var(--white);
-  font-family: Pretendard, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
 `;

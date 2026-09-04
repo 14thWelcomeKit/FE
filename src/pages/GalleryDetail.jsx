@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
+import { useAuth } from "../AuthContext";
 import { GALLERY_ALBUMS } from "./Gallery";
 
 const toBackground = (value) => {
@@ -16,28 +17,20 @@ export default function GalleryDetail() {
   const { galleryId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const fallbackAlbum = GALLERY_ALBUMS.find(
     (item) => item.id === Number(galleryId),
   );
   const album = location.state?.album || fallbackAlbum || GALLERY_ALBUMS[0];
-  const isAuthor = location.state?.isAuthor ?? true;
   const photos = album.photos?.length ? album.photos : [album.background];
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [dialog, setDialog] = useState(null);
 
   const handleEdit = () => {
-    if (!isAuthor) {
-      setDialog({ message: "작성자만 수정할 수 있습니다." });
-      return;
-    }
-    navigate(`/gallery/${album.id}/edit`, { state: { album, isAuthor } });
+    navigate(`/gallery/${album.id}/edit`, { state: { album } });
   };
 
   const handleDelete = () => {
-    if (!isAuthor) {
-      setDialog({ message: "작성자만 삭제할 수 있습니다." });
-      return;
-    }
     setDialog({ type: "delete", message: "정말 삭제하시겠습니까?" });
   };
 
@@ -52,16 +45,18 @@ export default function GalleryDetail() {
             <MetaText>
               {album.date}&nbsp;&nbsp;|&nbsp;&nbsp;{album.generation}기
             </MetaText>
-            <AuthorActions>
-              <EditButton type="button" onClick={handleEdit}>
-                <DesktopLabel>수정하기</DesktopLabel>
-                <MobileLabel>수정</MobileLabel>
-              </EditButton>
-              <DeleteButton type="button" onClick={handleDelete}>
-                <DesktopLabel>삭제하기</DesktopLabel>
-                <MobileLabel>삭제</MobileLabel>
-              </DeleteButton>
-            </AuthorActions>
+            {isAdmin && (
+              <AuthorActions>
+                <EditButton type="button" onClick={handleEdit}>
+                  <DesktopLabel>수정하기</DesktopLabel>
+                  <MobileLabel>수정</MobileLabel>
+                </EditButton>
+                <DeleteButton type="button" onClick={handleDelete}>
+                  <DesktopLabel>삭제하기</DesktopLabel>
+                  <MobileLabel>삭제</MobileLabel>
+                </DeleteButton>
+              </AuthorActions>
+            )}
           </MetaRow>
 
           <MainPhoto $background={toBackground(photos[selectedPhoto])} />
@@ -94,20 +89,12 @@ export default function GalleryDetail() {
           <DialogBox role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <DialogMessage>{dialog.message}</DialogMessage>
             <DialogButtons>
-              {dialog.type === "delete" ? (
-                <>
-                  <DialogSecondary type="button" onClick={() => setDialog(null)}>
-                    취소
-                  </DialogSecondary>
-                  <DialogPrimary type="button" onClick={() => navigate("/gallery")}>
-                    삭제
-                  </DialogPrimary>
-                </>
-              ) : (
-                <DialogPrimary type="button" onClick={() => setDialog(null)}>
-                  확인
-                </DialogPrimary>
-              )}
+              <DialogSecondary type="button" onClick={() => setDialog(null)}>
+                취소
+              </DialogSecondary>
+              <DialogPrimary type="button" onClick={() => navigate("/gallery")}>
+                삭제
+              </DialogPrimary>
             </DialogButtons>
           </DialogBox>
         </DialogOverlay>
