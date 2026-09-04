@@ -117,6 +117,7 @@ export function AuthPasswordInput({
   onChange,
   placeholder,
   id,
+  name,
 }) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -124,6 +125,7 @@ export function AuthPasswordInput({
     <PasswordWrapper>
       <PasswordField
         id={id}
+        name={name}
         type={showPassword ? "text" : "password"}
         value={value}
         onChange={onChange}
