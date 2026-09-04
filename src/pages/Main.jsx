@@ -8,6 +8,7 @@ import { ReactComponent as mainlogo } from "../images/mainlogo.svg";
 import { useNavigate } from "react-router-dom";
 import WelcomeModal from "../components/WelcomeModal";
 import axiosInstance from "../axiosInstance";
+import { useAuth } from "../AuthContext";
 
 const TextContainer = styled.div`
   display: flex;
@@ -169,22 +170,27 @@ const TextOverlay = styled.h1`
 
 export default function Main() {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const [hasReadWelcome, setHasReadWelcome] = useState(true);
 
   useEffect(() => {
-    fetchUserInfo();
-  }, []);
+    if (isLoggedIn) {
+      const fetchUserInfo = async () => {
+        try {
+          const res = await axiosInstance.get("/user/info");
+          if (res.data && res.data.hasReadWelcome === false) {
+            setHasReadWelcome(false);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
 
-  const fetchUserInfo = async () => {
-    try {
-      const res = await axiosInstance.get("/user/info");
-      if (res.data && res.data.hasReadWelcome === false) {
-        setHasReadWelcome(false);
-      }
-    } catch (err) {
-      console.error(err);
+      fetchUserInfo();
+    } else {
+      setHasReadWelcome(true);
     }
-  };
+  }, [isLoggedIn]);
 
   return (
     <>

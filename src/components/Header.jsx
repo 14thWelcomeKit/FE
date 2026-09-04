@@ -152,8 +152,8 @@ export default function Header() {
           {isLoggedIn && (
             <>
               <HeaderText
-                active={location.pathname === "/check"}
-                onClick={() => handleNavigate("/check")}
+                active={location.pathname === "/attendance"}
+                onClick={() => handleNavigate("/attendance")}
               >
                 ATTENDANCE
               </HeaderText>
@@ -220,7 +220,7 @@ export default function Header() {
                 <HeaderText onClick={() => handleNavigate("/mypage")}>
                   MY PAGE
                 </HeaderText>
-                <HeaderText onClick={() => handleNavigate("/check")}>
+                <HeaderText onClick={() => handleNavigate("/attendance")}>
                   QR 출석체크
                 </HeaderText>
                 <HeaderText onClick={() => handleNavigate("/bingo")}>
