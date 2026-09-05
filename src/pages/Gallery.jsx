@@ -1,13 +1,20 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
 import { useAuth } from "../AuthContext";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const ITEMS_PER_PAGE = 12;
 const VISIBLE_PAGE_COUNT = 3;
 const CATEGORIES = ["전체", "14기", "13기", "12기"];
+const INITIAL_PAGE_INFO = {
+  page: 0,
+  size: ITEMS_PER_PAGE,
+  totalElements: 0,
+  totalPages: 0,
+};
 
 const ALBUM_TITLES = [
   "14기 오리엔테이션",
@@ -85,25 +92,77 @@ export default function Gallery() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const contentRef = useRef(null);
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [albums, setAlbums] = useState([]);
+  const [pageInfo, setPageInfo] = useState(INITIAL_PAGE_INFO);
+  const [selectedCategory, setSelectedCategory] = useState("14기");
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filteredAlbums = useMemo(() => {
-    if (selectedCategory === "전체") return GALLERY_ALBUMS;
-    return GALLERY_ALBUMS.filter(
-      (album) => `${album.generation}기` === selectedCategory,
-    );
-  }, [selectedCategory]);
+  useEffect(() => {
+    let ignore = false;
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredAlbums.length / ITEMS_PER_PAGE),
-  );
-  const safeCurrentPage = Math.min(currentPage, totalPages);
-  const currentAlbums = filteredAlbums.slice(
-    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
-    safeCurrentPage * ITEMS_PER_PAGE,
-  );
+    const fetchAlbums = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await axiosInstance.get("/photos", {
+          params: {
+            page: currentPage - 1,
+            size: ITEMS_PER_PAGE,
+            ...(selectedCategory !== "전체" && {
+              category: selectedCategory,
+            }),
+          },
+        });
+        const { posts, pageInfo: responsePageInfo } = res.data.data;
+        const mappedAlbums = posts.map((post, index) => ({
+          id: post.postId,
+          title: post.title,
+          thumbnailUrl: post.thumbnailUrl,
+          date: post.eventDate.replaceAll("-", ". "),
+          category: post.category,
+          generation: Number(post.category.replace("기", "")),
+          background:
+            GALLERY_BACKGROUNDS[
+              (responsePageInfo.page * responsePageInfo.size + index) %
+                GALLERY_BACKGROUNDS.length
+            ],
+        }));
+
+        if (!ignore) {
+          setAlbums(mappedAlbums);
+          setPageInfo(responsePageInfo);
+        }
+      } catch (requestError) {
+        if (!ignore) {
+          setAlbums([]);
+          setPageInfo(INITIAL_PAGE_INFO);
+          setError(
+            getApiErrorMessage(
+              requestError,
+              "사진첩 목록을 불러오지 못했습니다.",
+            ),
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAlbums();
+
+    return () => {
+      ignore = true;
+    };
+  }, [currentPage, selectedCategory]);
+
+  const totalPages = pageInfo.totalPages;
+  const safeCurrentPage =
+    totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
   const visiblePages = getVisiblePages(safeCurrentPage, totalPages);
 
   const moveToListStart = () => {
@@ -160,9 +219,13 @@ export default function Gallery() {
             )}
           </ControlsRow>
 
-          {currentAlbums.length > 0 ? (
+          {loading ? (
+            <EmptyState>사진첩을 불러오는 중...</EmptyState>
+          ) : error ? (
+            <EmptyState>{error}</EmptyState>
+          ) : albums.length > 0 ? (
             <GalleryGrid>
-              {currentAlbums.map((album) => {
+              {albums.map((album) => {
                 const thumbnailSrc = resolveThumbnailUrl(album.thumbnailUrl);
 
                 return (
@@ -202,38 +265,45 @@ export default function Gallery() {
             <EmptyState>등록된 사진첩이 없습니다.</EmptyState>
           )}
 
-          <Pagination aria-label="사진첩 페이지">
-            <PaginationArrow
-              type="button"
-              aria-label="이전 페이지"
-              disabled={safeCurrentPage === 1}
-              onClick={() => handlePageChange(safeCurrentPage - 1)}
-            >
-              ‹
-            </PaginationArrow>
+          {!loading &&
+            !error &&
+            albums.length > 0 &&
+            totalPages > 0 && (
+              <Pagination aria-label="사진첩 페이지">
+                <PaginationArrow
+                  type="button"
+                  aria-label="이전 페이지"
+                  disabled={safeCurrentPage === 1}
+                  onClick={() => handlePageChange(safeCurrentPage - 1)}
+                >
+                  ‹
+                </PaginationArrow>
 
-            {visiblePages.map((page) => (
-              <PageButton
-                key={page}
-                type="button"
-                $active={page === safeCurrentPage}
-                aria-current={page === safeCurrentPage ? "page" : undefined}
-                aria-label={`${page}페이지`}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </PageButton>
-            ))}
+                {visiblePages.map((page) => (
+                  <PageButton
+                    key={page}
+                    type="button"
+                    $active={page === safeCurrentPage}
+                    aria-current={
+                      page === safeCurrentPage ? "page" : undefined
+                    }
+                    aria-label={`${page}페이지`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </PageButton>
+                ))}
 
-            <PaginationArrow
-              type="button"
-              aria-label="다음 페이지"
-              disabled={safeCurrentPage === totalPages}
-              onClick={() => handlePageChange(safeCurrentPage + 1)}
-            >
-              ›
-            </PaginationArrow>
-          </Pagination>
+                <PaginationArrow
+                  type="button"
+                  aria-label="다음 페이지"
+                  disabled={safeCurrentPage === totalPages}
+                  onClick={() => handlePageChange(safeCurrentPage + 1)}
+                >
+                  ›
+                </PaginationArrow>
+              </Pagination>
+            )}
         </GalleryContent>
       </GalleryPage>
     </>

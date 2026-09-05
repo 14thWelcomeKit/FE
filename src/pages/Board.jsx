@@ -6,7 +6,6 @@ import Header from "../components/Header";
 import { BsExclamationTriangle } from "react-icons/bs";
 
 import axiosInstance, { getApiErrorMessage } from "./../axiosInstance";
-const API_URL = process.env.REACT_APP_API_URL;
 
 const BoardContent = styled.div`
   display: flex;
