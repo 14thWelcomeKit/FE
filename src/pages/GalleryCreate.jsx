@@ -6,6 +6,7 @@ import breakpoints from "../components/breakpoints";
 import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const MAX_PHOTOS = 5;
+const CATEGORIES = ["14기", "13기", "12기"];
 const SUPPORTED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -46,12 +47,15 @@ export default function GalleryCreate() {
   const fileInputRef = useRef(null);
   const objectUrlsRef = useRef([]);
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("14기");
+  const [eventDate, setEventDate] = useState("");
   const [content, setContent] = useState("");
   const [photos, setPhotos] = useState([]);
   const [photoError, setPhotoError] = useState("");
-  const [uploadStatus, setUploadStatus] = useState("");
+  const [formError, setFormError] = useState("");
   const [isConverting, setIsConverting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStage, setSubmitStage] = useState("");
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -76,7 +80,7 @@ export default function GalleryCreate() {
 
     setIsConverting(true);
     setPhotoError("");
-    setUploadStatus("");
+    setFormError("");
 
     try {
       const normalizedFiles = await Promise.all(
@@ -113,7 +117,7 @@ export default function GalleryCreate() {
       return currentPhotos.filter((photo) => photo.id !== photoId);
     });
     setPhotoError("");
-    setUploadStatus("");
+    setFormError("");
   };
 
   const uploadPhotos = async () => {
@@ -153,29 +157,70 @@ export default function GalleryCreate() {
 
     if (submitting || isConverting) return;
 
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+
+    setPhotoError("");
+    setFormError("");
+
+    if (!trimmedTitle || trimmedTitle.length > 30) {
+      setFormError("제목은 30자 이내로 입력해주세요.");
+      return;
+    }
+
+    if (content.length > 1000) {
+      setFormError("내용은 1000자 이내로 입력해주세요.");
+      return;
+    }
+
     if (photos.length < 1 || photos.length > MAX_PHOTOS) {
       setPhotoError("사진을 1장 이상 5장 이하로 선택해주세요.");
       return;
     }
 
+    if (!category) {
+      setFormError("기수 카테고리를 선택해주세요.");
+      return;
+    }
+
+    if (!eventDate) {
+      setFormError("사진에 해당하는 행사일을 입력해주세요.");
+      return;
+    }
+
     setSubmitting(true);
-    setPhotoError("");
-    setUploadStatus("");
+    setSubmitStage("uploading");
 
     try {
-      const fileUrls = await uploadPhotos();
-      setUploadStatus(`${fileUrls.length}개 사진을 업로드했습니다.`);
+      const photoUrls = await uploadPhotos();
+      setSubmitStage("creating");
+
+      const response = await axiosInstance.post("/photos", {
+        title: trimmedTitle,
+        category,
+        photoUrls,
+        content: trimmedContent,
+        eventDate,
+      });
+      const postId = response.data.data.postId;
+
+      if (!postId) {
+        throw new Error("게시글 등록 응답이 올바르지 않습니다.");
+      }
+
+      navigate(`/gallery/${postId}`);
     } catch (requestError) {
-      setPhotoError(
+      setFormError(
         requestError.response
           ? getApiErrorMessage(
               requestError,
-              "업로드 URL 발급에 실패했습니다.",
+              "게시글 등록에 실패했습니다.",
             )
-          : requestError.message || "업로드 URL 발급에 실패했습니다.",
+          : requestError.message || "게시글 등록에 실패했습니다.",
       );
     } finally {
       setSubmitting(false);
+      setSubmitStage("");
     }
   };
 
@@ -186,7 +231,7 @@ export default function GalleryCreate() {
         <Content>
           <PageTitle>사진 글 작성하기</PageTitle>
 
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit} noValidate>
             <Field>
               <FieldHeader>
                 <FieldLabel htmlFor="gallery-title">제목</FieldLabel>
@@ -196,12 +241,56 @@ export default function GalleryCreate() {
                 id="gallery-title"
                 value={title}
                 maxLength={30}
+                required
+                disabled={submitting}
                 placeholder="제목을 입력해주세요"
-                onChange={(event) => setTitle(event.target.value)}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  setFormError("");
+                }}
               />
             </Field>
 
             <Field>
+              <FieldHeader>
+                <FieldLabel htmlFor="gallery-category">기수</FieldLabel>
+              </FieldHeader>
+              <SelectInput
+                id="gallery-category"
+                value={category}
+                required
+                disabled={submitting}
+                onChange={(event) => {
+                  setCategory(event.target.value);
+                  setFormError("");
+                }}
+              >
+                {CATEGORIES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+
+            <Field>
+              <FieldHeader>
+                <FieldLabel htmlFor="gallery-event-date">행사일</FieldLabel>
+              </FieldHeader>
+              <DateInput
+                id="gallery-event-date"
+                type="date"
+                value={eventDate}
+                required
+                disabled={submitting}
+                onChange={(event) => {
+                  setEventDate(event.target.value);
+                  setFormError("");
+                }}
+              />
+            </Field>
+
+            <PhotoField>
               <FieldHeader>
                 <FieldLabel>사진 업로드</FieldLabel>
                 <Counter>{photos.length}/5</Counter>
@@ -244,10 +333,7 @@ export default function GalleryCreate() {
                 onChange={handlePhotoChange}
               />
               {photoError && <ErrorMessage role="alert">{photoError}</ErrorMessage>}
-              {uploadStatus && (
-                <SuccessMessage role="status">{uploadStatus}</SuccessMessage>
-              )}
-            </Field>
+            </PhotoField>
 
             <Field>
               <FieldHeader>
@@ -258,13 +344,23 @@ export default function GalleryCreate() {
                 id="gallery-content"
                 value={content}
                 maxLength={1000}
+                disabled={submitting}
                 placeholder="내용을 입력해주세요"
-                onChange={(event) => setContent(event.target.value)}
+                onChange={(event) => {
+                  setContent(event.target.value);
+                  setFormError("");
+                }}
               />
             </Field>
 
+            {formError && <ErrorMessage role="alert">{formError}</ErrorMessage>}
+
             <ButtonRow>
-              <SecondaryButton type="button" onClick={() => navigate("/gallery")}>
+              <SecondaryButton
+                type="button"
+                disabled={isConverting || submitting}
+                onClick={() => navigate("/gallery")}
+              >
                 취소
               </SecondaryButton>
               <PrimaryButton
@@ -274,7 +370,9 @@ export default function GalleryCreate() {
                 {isConverting
                   ? "사진 변환 중..."
                   : submitting
-                    ? "사진 업로드 중..."
+                    ? submitStage === "creating"
+                      ? "게시글 등록 중..."
+                      : "사진 업로드 중..."
                     : "작성 완료"}
               </PrimaryButton>
             </ButtonRow>
@@ -345,16 +443,16 @@ const Field = styled.div`
   flex-direction: column;
   gap: 8px;
 
-  &:nth-of-type(2) {
-    gap: 24px;
-  }
-
   @media (max-width: ${breakpoints.tablet}) {
     gap: 7px;
+  }
+`;
 
-    &:nth-of-type(2) {
-      gap: 18px;
-    }
+const PhotoField = styled(Field)`
+  gap: 24px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    gap: 18px;
   }
 `;
 
@@ -527,11 +625,37 @@ const ErrorMessage = styled.p`
   font-size: 11px;
 `;
 
-const SuccessMessage = styled.p`
-  margin: 0;
-  color: rgba(249, 249, 249, 0.78);
-  font-family: Pretendard, sans-serif;
-  font-size: 11px;
+const SelectInput = styled.select`
+  ${fieldSurface}
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+
+  option {
+    color: #1f1f1f;
+  }
+
+  @media (max-width: ${breakpoints.tablet}) {
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
+`;
+
+const DateInput = styled.input`
+  ${fieldSurface}
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  color-scheme: dark;
+  font-size: 13px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
 `;
 
 const ButtonRow = styled.div`
