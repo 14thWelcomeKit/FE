@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import ReactQRScanner from "react-qr-scanner";
 import { IoMdClose } from "react-icons/io";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
-import AttendanceStatusDropdown, {
-  ATTENDANCE_STATUS_LABELS,
-} from "../components/AttendanceStatusDropdown";
+import AttendanceAdmin from "../components/AttendanceAdmin";
+import AttendanceMember from "../components/AttendanceMember";
 import { useAuth } from "../AuthContext";
 import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
@@ -73,71 +72,6 @@ const Panel = styled.section`
   }
 `;
 
-const PanelTitle = styled.h2`
-  margin: 0 0 1.25rem;
-  color: #ffff;
-  font-family: Pretendard;
-  font-size: 1.5rem;
-`;
-
-const SelectedSessionDate = styled.p`
-  margin: -0.75rem 0 1.25rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-family: Pretendard;
-  font-size: 1rem;
-  line-height: 140%;
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-`;
-
-const Button = styled.button`
-  min-height: 3.25rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 3.125rem;
-  background: #ffff;
-  color: var(--orange);
-  font-family: Pretendard;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: var(--orange);
-    color: #ffff;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-`;
-
-const MobileAttendanceButton = styled(Button)`
-  display: none;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    display: block;
-  }
-`;
-
-const DateInput = styled.input`
-  min-height: 3.25rem;
-  padding: 0.65rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 3.125rem;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.19);
-  color: #ffff;
-  color-scheme: dark;
-  font-family: Pretendard;
-`;
-
 const MessageBox = styled.div`
   width: 100%;
   padding: 0.85rem 1rem;
@@ -150,216 +84,10 @@ const MessageBox = styled.div`
   font-family: Pretendard;
 `;
 
-const SessionGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 19.5rem);
-  justify-content: start;
-  gap: 1rem;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const SessionCard = styled.div`
-  width: 19.5rem;
-  min-height: 10rem;
-  padding: 1.25rem;
-  border: 2px solid
-    ${(props) => (props.$selected ? "var(--orange)" : "transparent")};
-  border-radius: 1rem;
-  box-sizing: border-box;
-  background: ${(props) =>
-    props.$selected
-      ? "rgba(255, 244, 237, 0.96)"
-      : "rgba(255, 255, 255, 0.9)"};
-  box-shadow: ${(props) =>
-    props.$selected ? "0 0 0 3px rgba(255, 96, 0, 0.18)" : "none"};
-  color: var(--black);
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    border-color: ${(props) =>
-      props.$selected ? "var(--orange)" : "rgba(255, 96, 0, 0.55)"};
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--orange);
-    outline-offset: 3px;
-  }
-
-  @media (max-width: ${breakpoints.tablet}) {
-    width: 100%;
-  }
-`;
-
-const SessionDate = styled.strong`
-  display: block;
-  margin-bottom: 0.75rem;
-  font-family: Pretendard;
-  font-size: 1.05rem;
-`;
-
-const CountGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  font-family: Pretendard;
-  font-size: 0.9rem;
-`;
-
-const DeleteButton = styled(Button)`
-  min-height: 2.5rem;
-  margin-top: 1rem;
-  padding: 0.4rem 1rem;
-  background: #721c24;
-  color: #ffff;
-  font-size: 0.875rem;
-`;
-
-const TableWrapper = styled.div`
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 1rem;
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  min-width: 48rem;
-  border-collapse: collapse;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--black);
-  font-family: Pretendard;
-
-  th,
-  td {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(28, 28, 28, 0.1);
-    text-align: center;
-  }
-
-  th {
-    background: rgba(255, 96, 0, 0.1);
-    color: #50372d;
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-
-  tbody tr {
-    transition: background-color 0.15s ease;
-  }
-
-  tbody tr:hover {
-    background: rgba(255, 255, 255, 0.48);
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-`;
-
 const EmptyText = styled.p`
   margin: 0;
   color: #ffff;
   font-family: Pretendard;
-`;
-
-const MobileEmptyText = styled(EmptyText)`
-  display: block;
-
-  @media (max-width: ${breakpoints.tablet}) {
-    display: none;
-  }
-`;
-
-const AttendanceCardGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-  gap: 1rem;
-
-  @media (max-width: ${breakpoints.mobile}) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const AttendanceCard = styled.article`
-  display: flex;
-  min-height: 8.5rem;
-  padding: 1.25rem;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 1rem;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--black);
-  font-family: Pretendard;
-`;
-
-const AttendanceInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-`;
-
-const InfoRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-`;
-
-const InfoLabel = styled.span`
-  color: #6a6a6a;
-  font-size: 0.9rem;
-`;
-
-const InfoValue = styled.strong`
-  color: var(--black);
-  text-align: right;
-`;
-
-const StatusBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 4.5rem;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(255, 96, 0, 0.45);
-  border-radius: 3.125rem;
-  background: rgba(255, 96, 0, 0.1);
-  color: var(--orange);
-  font-family: Pretendard;
-  font-size: 0.9rem;
-  font-weight: 600;
-`;
-
-const HistoryList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const HistoryItem = styled.div`
-  display: flex;
-  min-height: 3.75rem;
-  padding: 0.75rem 1rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 0.9rem;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--black);
-  font-family: Pretendard;
-`;
-
-const HistoryDate = styled.strong`
-  font-size: 1rem;
 `;
 
 const ModalOverlay = styled.div`
@@ -446,10 +174,6 @@ function formatDate(value) {
   return `${match[1]}. ${Number(match[2])}. ${Number(match[3])}.`;
 }
 
-function getStatusLabel(status) {
-  return ATTENDANCE_STATUS_LABELS[status] || status || "-";
-}
-
 export default function Attendance() {
   const { userType, isAdmin, isUserInfoLoading } = useAuth();
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
@@ -459,24 +183,85 @@ export default function Attendance() {
   const [sessionDetails, setSessionDetails] = useState([]);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
   const [sessionDate, setSessionDate] = useState("");
-  const [todayAttendance, setTodayAttendance] = useState(null);
-  const [myAttendance, setMyAttendance] = useState(null);
+  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [myAttendance, setMyAttendance] = useState([]);
+  const [myAttendancePagination, setMyAttendancePagination] = useState({
+    number: 0,
+    totalPages: 0,
+    totalElements: 0,
+    size: 20,
+    first: true,
+    last: true,
+  });
   const [modalType, setModalType] = useState(null);
   const [qrImage, setQrImage] = useState(null);
   const [scanResult, setScanResult] = useState(null);
   const [message, setMessage] = useState(null);
   const [messageType, setMessageType] = useState("error");
-  const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState(
-    () => new Set()
-  );
+  const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState(() => new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const updatingAttendanceIdsRef = useRef(new Set());
+  const selectedSessionIdRef = useRef(null);
   const sessionDetailsRequestIdRef = useRef(0);
+  const myAttendanceRequestIdRef = useRef(0);
   const isScanSubmitting = useRef(false);
 
-  const showMessage = (text, type = "error") => {
+  const showMessage = useCallback((text, type = "error") => {
     setMessage(text);
     setMessageType(type);
-  };
+  }, []);
+
+  const fetchTodayAttendance = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get(
+        "/attendance/today/attendance"
+      );
+      setTodayAttendance(
+        Array.isArray(response.data) ? response.data : []
+      );
+    } catch (error) {
+      const isSessionNotFound =
+        error.response?.status === 404 &&
+        error.response?.data?.errorCode === "SESSION_NOT_FOUND";
+
+      if (isSessionNotFound) {
+        setTodayAttendance([]);
+        return;
+      }
+
+      showMessage(
+        getApiErrorMessage(error, "오늘 출석 정보를 불러오지 못했습니다.")
+      );
+    }
+  }, [showMessage]);
+
+  const fetchMyAttendance = useCallback(async (page = 0) => {
+    const requestId = ++myAttendanceRequestIdRef.current;
+    try {
+      const response = await axiosInstance.get(
+        "/attendance/my-attendance",
+        { params: { page, size: 20 } }
+      );
+      if (requestId !== myAttendanceRequestIdRef.current) return;
+      const data = response.data;
+      setMyAttendance(Array.isArray(data?.content) ? data.content : []);
+      setMyAttendancePagination({
+        number: Number.isInteger(data?.number) ? data.number : page,
+        totalPages: Number.isInteger(data?.totalPages) ? data.totalPages : 0,
+        totalElements: Number.isInteger(data?.totalElements)
+          ? data.totalElements
+          : 0,
+        size: Number.isInteger(data?.size) ? data.size : 20,
+        first: typeof data?.first === "boolean" ? data.first : page === 0,
+        last: typeof data?.last === "boolean" ? data.last : true,
+      });
+    } catch (error) {
+      if (requestId !== myAttendanceRequestIdRef.current) return;
+      showMessage(
+        getApiErrorMessage(error, "내 출석 내역을 불러오지 못했습니다.")
+      );
+    }
+  }, [showMessage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -499,13 +284,11 @@ export default function Attendance() {
             Array.isArray(sessionsResponse.data) ? sessionsResponse.data : []
           );
         } else if (userType === "BABY_LION") {
-          const [todayResponse, historyResponse] = await Promise.all([
-            axiosInstance.get("/attendance/today/attendance"),
-            axiosInstance.get("/attendance/my-attendance"),
+          await Promise.all([
+            fetchTodayAttendance(),
+            fetchMyAttendance(0),
           ]);
           if (!isMounted) return;
-          setTodayAttendance(todayResponse.data);
-          setMyAttendance(historyResponse.data);
         } else {
           showMessage("사용자 역할을 확인할 수 없습니다.");
         }
@@ -525,7 +308,7 @@ export default function Attendance() {
     return () => {
       isMounted = false;
     };
-  }, [isAdmin, isUserInfoLoading, userType]);
+  }, [fetchMyAttendance, fetchTodayAttendance, isAdmin, isUserInfoLoading, showMessage, userType]);
 
   useEffect(() => {
     return () => {
@@ -569,22 +352,8 @@ export default function Attendance() {
   const handleSessionSelect = (sessionId) => {
     setOpenDropdownId(null);
     setSelectedSessionId(sessionId);
+    selectedSessionIdRef.current = sessionId;
     fetchSessionDetails(sessionId);
-  };
-
-  const fetchMemberAttendance = async () => {
-    try {
-      const [todayResponse, historyResponse] = await Promise.all([
-        axiosInstance.get("/attendance/today/attendance"),
-        axiosInstance.get("/attendance/my-attendance"),
-      ]);
-      setTodayAttendance(todayResponse.data);
-      setMyAttendance(historyResponse.data);
-    } catch (error) {
-      showMessage(
-        getApiErrorMessage(error, "내 출석 정보를 불러오지 못했습니다.")
-      );
-    }
   };
 
   const handleCreateSession = async (event) => {
@@ -614,7 +383,8 @@ export default function Attendance() {
 
     try {
       await axiosInstance.delete(`/attendance/sessions/${sessionId}`);
-      if (selectedSessionId === sessionId) {
+      if (selectedSessionIdRef.current === sessionId) {
+        selectedSessionIdRef.current = null;
         sessionDetailsRequestIdRef.current += 1;
         setSelectedSessionId(null);
         setSessionDetails([]);
@@ -632,6 +402,7 @@ export default function Attendance() {
   const handleStatusChange = async (attendanceId, status) => {
     if (updatingAttendanceIdsRef.current.has(attendanceId)) return;
 
+    const sessionId = selectedSessionIdRef.current;
     updatingAttendanceIdsRef.current.add(attendanceId);
     setUpdatingAttendanceIds(new Set(updatingAttendanceIdsRef.current));
 
@@ -640,10 +411,11 @@ export default function Attendance() {
         status,
       });
       showMessage("출석 상태가 변경되었습니다.", "success");
-      await Promise.all([
-        fetchSessionDetails(selectedSessionId),
-        fetchSessions(),
-      ]);
+      const refreshRequests = [fetchSessions()];
+      if (selectedSessionIdRef.current === sessionId && sessionId != null) {
+        refreshRequests.push(fetchSessionDetails(sessionId));
+      }
+      await Promise.all(refreshRequests);
     } catch (error) {
       showMessage(
         getApiErrorMessage(error, "출석 상태 변경에 실패했습니다.")
@@ -692,7 +464,10 @@ export default function Attendance() {
         response.data?.message || "출석 처리가 완료되었습니다.",
         "success"
       );
-      await fetchMemberAttendance();
+      await Promise.all([
+        fetchTodayAttendance(),
+        fetchMyAttendance(0),
+      ]);
     } catch (error) {
       showMessage(getApiErrorMessage(error, "출석 처리에 실패했습니다."));
       isScanSubmitting.current = false;
@@ -710,6 +485,25 @@ export default function Attendance() {
   const handleScannerError = (error) => {
     console.error("QR scanner error:", error);
     showMessage(`카메라 접근에 실패했습니다: ${error.message}`);
+  };
+
+  const handleRefreshAttendance = async () => {
+    if (isRefreshing) return;
+  
+    setIsRefreshing(true);
+  
+    try {
+      const requests = [fetchSessions()];
+      const sessionId = selectedSessionIdRef.current;
+  
+      if (sessionId != null) {
+        requests.push(fetchSessionDetails(sessionId));
+      }
+  
+      await Promise.all(requests);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const isBabyLion = userType === "BABY_LION";
@@ -744,197 +538,42 @@ export default function Attendance() {
           {isAttendanceLoading && <Panel><EmptyText>출석 정보를 불러오는 중입니다.</EmptyText></Panel>}
 
           {!isAttendanceLoading && isAdmin && (
-            <>
-              <Panel>
-                <PanelTitle>출석 운영</PanelTitle>
-                <ActionRow as="form" onSubmit={handleCreateSession}>
-                  <DateInput
-                    type="datetime-local"
-                    value={sessionDate}
-                    onChange={(event) => setSessionDate(event.target.value)}
-                    aria-label="출석 세션 날짜와 시간"
-                  />
-                  <Button type="submit">세션 생성</Button>
-                  <Button type="button" onClick={openQrModal}>
-                    QR 생성
-                  </Button>
-                </ActionRow>
-              </Panel>
-
-              <Panel>
-                <PanelTitle>전체 출석 세션</PanelTitle>
-                {sessions.length > 0 ? (
-                  <SessionGrid>
-                    {sessions.map((session) => (
-                      <SessionCard
-                        key={session.sessionId}
-                        role="button"
-                        tabIndex={0}
-                        $selected={selectedSessionId === session.sessionId}
-                        aria-pressed={selectedSessionId === session.sessionId}
-                        onClick={() => handleSessionSelect(session.sessionId)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            handleSessionSelect(session.sessionId);
-                          }
-                        }}
-                      >
-                        <SessionDate>
-                          {formatDateTime(session.sessionDate)}
-                        </SessionDate>
-                        <CountGrid>
-                          <span>전체 {session.totalCount}</span>
-                          <span>출석 {session.presentCount}</span>
-                          <span>지각 {session.lateCount}</span>
-                          <span>결석 {session.absentCount}</span>
-                        </CountGrid>
-                        <DeleteButton
-                          type="button"
-                          onClick={(event) =>
-                            handleDeleteSession(event, session.sessionId)
-                          }
-                        >
-                          세션 삭제
-                        </DeleteButton>
-                      </SessionCard>
-                    ))}
-                  </SessionGrid>
-                ) : (
-                  <EmptyText>등록된 출석 세션이 없습니다.</EmptyText>
-                )}
-              </Panel>
-
-              {selectedSessionId != null && (
-                <Panel>
-                  <PanelTitle>세션별 출석 상세</PanelTitle>
-                  {selectedSession && (
-                    <SelectedSessionDate>
-                      {formatDateTime(selectedSession.sessionDate)}
-                    </SelectedSessionDate>
-                  )}
-                  {isDetailsLoading ? (
-                    <EmptyText>상세 정보를 불러오는 중입니다.</EmptyText>
-                  ) : sessionDetails.length > 0 ? (
-                    <TableWrapper>
-                      <Table>
-                        <thead>
-                          <tr>
-                            <th>이름</th>
-                            <th>학번</th>
-                            <th>팀</th>
-                            <th>출석 상태</th>
-                            <th>출석 시간</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sessionDetails.map((attendance) => (
-                            <tr key={attendance.attendanceId}>
-                              <td>{attendance.name}</td>
-                              <td>{attendance.studentNum}</td>
-                              <td>{attendance.teamName ?? "-"}</td>
-                              <td>
-                                <AttendanceStatusDropdown
-                                  attendanceId={attendance.attendanceId}
-                                  value={attendance.status}
-                                  onChange={(status) =>
-                                    handleStatusChange(
-                                      attendance.attendanceId,
-                                      status
-                                    )
-                                  }
-                                  disabled={updatingAttendanceIds.has(
-                                    attendance.attendanceId
-                                  )}
-                                  ariaLabel={`${attendance.name} 출석 상태`}
-                                  isOpen={
-                                    openDropdownId === attendance.attendanceId
-                                  }
-                                  onToggle={(shouldOpen) =>
-                                    setOpenDropdownId(
-                                      shouldOpen ? attendance.attendanceId : null
-                                    )
-                                  }
-                                  onClose={() =>
-                                    setOpenDropdownId((currentId) =>
-                                      currentId === attendance.attendanceId
-                                        ? null
-                                        : currentId
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>{formatDateTime(attendance.attendanceTime)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </TableWrapper>
-                  ) : (
-                    <EmptyText>이 세션의 출석 정보가 없습니다.</EmptyText>
-                  )}
-                </Panel>
-              )}
-            </>
+            <AttendanceAdmin
+              sessions={sessions}
+              selectedSessionId={selectedSessionId}
+              selectedSession={selectedSession}
+              sessionDetails={sessionDetails}
+              sessionDate={sessionDate}
+              isDetailsLoading={isDetailsLoading}
+              isRefreshing={isRefreshing}
+              openDropdownId={openDropdownId}
+              updatingAttendanceIds={updatingAttendanceIds}
+              onSessionDateChange={(event) => setSessionDate(event.target.value)}
+              onCreateSession={handleCreateSession}
+              onDeleteSession={handleDeleteSession}
+              onSessionSelect={handleSessionSelect}
+              onStatusChange={handleStatusChange}
+              onDropdownToggle={setOpenDropdownId}
+              onDropdownClose={(attendanceId) =>
+                setOpenDropdownId((currentId) =>
+                  currentId === attendanceId ? null : currentId
+                )
+              }
+              onOpenQrModal={openQrModal}
+              onRefreshAttendance={handleRefreshAttendance}
+              formatDateTime={formatDateTime}
+            />
           )}
 
           {!isAttendanceLoading && isBabyLion && (
-            <>
-              <Panel>
-                <PanelTitle>QR 출석</PanelTitle>
-                <MobileAttendanceButton type="button" onClick={openScanModal}>
-                  출석하기
-                </MobileAttendanceButton>
-                <MobileEmptyText>출석하기 버튼은 모바일 화면에서 표시됩니다.</MobileEmptyText>
-              </Panel>
-              <Panel>
-                <PanelTitle>오늘 내 출석 상태</PanelTitle>
-                {Array.isArray(todayAttendance) &&
-                todayAttendance.length > 0 ? (
-                  <AttendanceCardGrid>
-                    {todayAttendance.map((attendance, index) => (
-                      <AttendanceCard key={`${attendance.name}-${index}`}>
-                        <AttendanceInfo>
-                          <InfoRow>
-                            <InfoLabel>이름</InfoLabel>
-                            <InfoValue>{attendance.name || "-"}</InfoValue>
-                          </InfoRow>
-                          <InfoRow>
-                            <InfoLabel>팀</InfoLabel>
-                            <InfoValue>{attendance.teamName ?? "-"}</InfoValue>
-                          </InfoRow>
-                        </AttendanceInfo>
-                        <InfoRow>
-                          <InfoLabel>출석 상태</InfoLabel>
-                          <StatusBadge>
-                            {getStatusLabel(attendance.attendanceStatus)}
-                          </StatusBadge>
-                        </InfoRow>
-                      </AttendanceCard>
-                    ))}
-                  </AttendanceCardGrid>
-                ) : (
-                  <EmptyText>오늘 출석 정보가 없습니다.</EmptyText>
-                )}
-              </Panel>
-              <Panel>
-                <PanelTitle>내 전체 출석 내역</PanelTitle>
-                {Array.isArray(myAttendance) && myAttendance.length > 0 ? (
-                  <HistoryList>
-                    {myAttendance.map((attendance, index) => (
-                      <HistoryItem key={`${attendance.date}-${index}`}>
-                        <HistoryDate>{formatDate(attendance.date)}</HistoryDate>
-                        <StatusBadge>
-                          {getStatusLabel(attendance.attendanceStatus)}
-                        </StatusBadge>
-                      </HistoryItem>
-                    ))}
-                  </HistoryList>
-                ) : (
-                  <EmptyText>출석 내역이 없습니다.</EmptyText>
-                )}
-              </Panel>
-            </>
+            <AttendanceMember
+              todayAttendance={todayAttendance}
+              myAttendance={myAttendance}
+              pagination={myAttendancePagination}
+              onOpenScanModal={openScanModal}
+              onPageChange={fetchMyAttendance}
+              formatDate={formatDate}
+            />
           )}
         </Content>
       </AttendancePage>
