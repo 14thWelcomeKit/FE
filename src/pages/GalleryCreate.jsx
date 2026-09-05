@@ -3,8 +3,43 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const MAX_PHOTOS = 5;
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const isHeicFile = (file) =>
+  /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+
+const normalizeImageFile = async (file) => {
+  if (isHeicFile(file)) {
+    const { default: heic2any } = await import("heic2any");
+    const result = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+    const blob = Array.isArray(result) ? result[0] : result;
+
+    return new File(
+      [blob],
+      file.name.replace(/\.[^.]+$/, ".jpg"),
+      { type: "image/jpeg" },
+    );
+  }
+
+  if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+    throw new Error(
+      "지원하지 않는 이미지 형식입니다. (jpeg, png, webp만 가능)",
+    );
+  }
+
+  return file;
+};
 
 export default function GalleryCreate() {
   const navigate = useNavigate();
@@ -14,6 +49,9 @@ export default function GalleryCreate() {
   const [content, setContent] = useState("");
   const [photos, setPhotos] = useState([]);
   const [photoError, setPhotoError] = useState("");
+  const [uploadUrlStatus, setUploadUrlStatus] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -22,7 +60,10 @@ export default function GalleryCreate() {
     };
   }, []);
 
-  const handlePhotoChange = (event) => {
+  const handlePhotoChange = async (event) => {
+    if (isConverting || submitting) return;
+
+    const input = event.currentTarget;
     const selectedFiles = Array.from(event.target.files || []);
 
     if (!selectedFiles.length) return;
@@ -33,20 +74,36 @@ export default function GalleryCreate() {
       return;
     }
 
-    const nextPhotos = selectedFiles.map((file, index) => {
-      const preview = URL.createObjectURL(file);
-      objectUrlsRef.current.push(preview);
-
-      return {
-        id: `${file.name}-${file.lastModified}-${index}`,
-        name: file.name,
-        preview,
-      };
-    });
-
-    setPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
+    setIsConverting(true);
     setPhotoError("");
-    event.target.value = "";
+    setUploadUrlStatus("");
+
+    try {
+      const normalizedFiles = await Promise.all(
+        selectedFiles.map(normalizeImageFile),
+      );
+      const batchId = Date.now();
+      const nextPhotos = normalizedFiles.map((file, index) => {
+        const preview = URL.createObjectURL(file);
+        objectUrlsRef.current.push(preview);
+
+        return {
+          id: `${file.name}-${file.lastModified}-${batchId}-${index}`,
+          name: file.name,
+          file,
+          preview,
+        };
+      });
+
+      setPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
+    } catch (conversionError) {
+      setPhotoError(
+        conversionError.message || "이미지 변환 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setIsConverting(false);
+      input.value = "";
+    }
   };
 
   const handlePhotoRemove = (photoId) => {
@@ -56,11 +113,50 @@ export default function GalleryCreate() {
       return currentPhotos.filter((photo) => photo.id !== photoId);
     });
     setPhotoError("");
+    setUploadUrlStatus("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    navigate("/gallery");
+
+    if (submitting || isConverting) return;
+
+    if (photos.length < 1 || photos.length > MAX_PHOTOS) {
+      setPhotoError("사진을 1장 이상 5장 이하로 선택해주세요.");
+      return;
+    }
+
+    setSubmitting(true);
+    setPhotoError("");
+    setUploadUrlStatus("");
+
+    try {
+      const response = await axiosInstance.post("/photos/upload-url", {
+        files: photos.map(({ file }) => ({
+          contentType: file.type,
+        })),
+      });
+      const urls = response.data.data.urls;
+
+      if (!Array.isArray(urls) || urls.length !== photos.length) {
+        throw new Error("업로드 URL 응답이 올바르지 않습니다.");
+      }
+
+      setUploadUrlStatus(
+        `${urls.length}개 사진의 업로드 URL을 발급받았습니다.`,
+      );
+    } catch (requestError) {
+      setPhotoError(
+        requestError.response
+          ? getApiErrorMessage(
+              requestError,
+              "업로드 URL 발급에 실패했습니다.",
+            )
+          : requestError.message || "업로드 URL 발급에 실패했습니다.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -100,6 +196,7 @@ export default function GalleryCreate() {
                     <RemovePhotoButton
                       type="button"
                       aria-label={`${photo.name} 삭제`}
+                      disabled={isConverting || submitting}
                       onClick={() => handlePhotoRemove(photo.id)}
                     >
                       ×
@@ -111,6 +208,7 @@ export default function GalleryCreate() {
                 {photos.length < MAX_PHOTOS && (
                   <AddPhotoButton
                     type="button"
+                    disabled={isConverting || submitting}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     + 사진 추가
@@ -120,11 +218,15 @@ export default function GalleryCreate() {
               <HiddenFileInput
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,.heic,.heif"
                 multiple
+                disabled={isConverting || submitting}
                 onChange={handlePhotoChange}
               />
               {photoError && <ErrorMessage role="alert">{photoError}</ErrorMessage>}
+              {uploadUrlStatus && (
+                <SuccessMessage role="status">{uploadUrlStatus}</SuccessMessage>
+              )}
             </Field>
 
             <Field>
@@ -145,7 +247,16 @@ export default function GalleryCreate() {
               <SecondaryButton type="button" onClick={() => navigate("/gallery")}>
                 취소
               </SecondaryButton>
-              <PrimaryButton type="submit">작성 완료</PrimaryButton>
+              <PrimaryButton
+                type="submit"
+                disabled={isConverting || submitting}
+              >
+                {isConverting
+                  ? "사진 변환 중..."
+                  : submitting
+                    ? "URL 발급 중..."
+                    : "작성 완료"}
+              </PrimaryButton>
             </ButtonRow>
           </Form>
         </Content>
@@ -396,6 +507,13 @@ const ErrorMessage = styled.p`
   font-size: 11px;
 `;
 
+const SuccessMessage = styled.p`
+  margin: 0;
+  color: rgba(249, 249, 249, 0.78);
+  font-family: Pretendard, sans-serif;
+  font-size: 11px;
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -418,6 +536,11 @@ const ActionButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   @media (max-width: ${breakpoints.tablet}) {
     min-height: 31px;
