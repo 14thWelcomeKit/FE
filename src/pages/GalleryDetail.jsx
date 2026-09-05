@@ -1,12 +1,22 @@
-import { useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
-import { useAuth } from "../AuthContext";
-import { GALLERY_ALBUMS } from "./Gallery";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
+
+const resolvePhotoUrl = (photoUrl) => {
+  if (!photoUrl) return "";
+  if (/^https?:\/\//i.test(photoUrl)) return photoUrl;
+
+  const apiBaseUrl = process.env.REACT_APP_API_URL?.replace(/\/$/, "");
+  if (!apiBaseUrl) return photoUrl;
+
+  return `${apiBaseUrl}${photoUrl.startsWith("/") ? "" : "/"}${photoUrl}`;
+};
 
 const toBackground = (value) => {
+  if (!value) return "rgba(255, 255, 255, 0.08)";
   if (/^(blob:|data:|https?:)/i.test(value)) {
     return `url(${value}) center / cover no-repeat`;
   }
@@ -15,16 +25,64 @@ const toBackground = (value) => {
 
 export default function GalleryDetail() {
   const { galleryId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
-  const fallbackAlbum = GALLERY_ALBUMS.find(
-    (item) => item.id === Number(galleryId),
-  );
-  const album = location.state?.album || fallbackAlbum || GALLERY_ALBUMS[0];
-  const photos = album.photos?.length ? album.photos : [album.background];
+  const [album, setAlbum] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const [dialog, setDialog] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchAlbum = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await axiosInstance.get(`/photos/${galleryId}`);
+        const post = response.data.data;
+        const nextAlbum = {
+          id: post.postId,
+          title: post.title,
+          category: post.category,
+          photos: (post.photoUrls || []).map(resolvePhotoUrl),
+          content: post.content,
+          date: post.eventDate.replaceAll("-", ". "),
+          eventDate: post.eventDate,
+          authorNickname: post.authorNickname,
+          isOwner: post.isOwner,
+        };
+
+        if (!ignore) {
+          setAlbum(nextAlbum);
+          setSelectedPhoto(0);
+        }
+      } catch (requestError) {
+        if (!ignore) {
+          setAlbum(null);
+          setError(
+            getApiErrorMessage(
+              requestError,
+              "게시글을 불러오지 못했습니다.",
+            ),
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAlbum();
+
+    return () => {
+      ignore = true;
+    };
+  }, [galleryId]);
+
+  const photos = album?.photos || [];
 
   const handleEdit = () => {
     navigate(`/gallery/${album.id}/edit`, { state: { album } });
@@ -39,52 +97,69 @@ export default function GalleryDetail() {
       <Header />
       <Page>
         <Content>
-          <PageTitle>{album.title}</PageTitle>
+          {loading ? (
+            <StateMessage>게시글을 불러오는 중...</StateMessage>
+          ) : error ? (
+            <StateMessage role="alert">{error}</StateMessage>
+          ) : album ? (
+            <>
+              <PageTitle>{album.title}</PageTitle>
 
-          <MetaRow>
-            <MetaText>
-              {album.date}&nbsp;&nbsp;|&nbsp;&nbsp;{album.generation}기
-            </MetaText>
-            {isAdmin && (
-              <AuthorActions>
-                <EditButton type="button" onClick={handleEdit}>
-                  <DesktopLabel>수정하기</DesktopLabel>
-                  <MobileLabel>수정</MobileLabel>
-                </EditButton>
-                <DeleteButton type="button" onClick={handleDelete}>
-                  <DesktopLabel>삭제하기</DesktopLabel>
-                  <MobileLabel>삭제</MobileLabel>
-                </DeleteButton>
-              </AuthorActions>
-            )}
-          </MetaRow>
+              <MetaRow>
+                <MetaText>
+                  {album.date}&nbsp;&nbsp;|&nbsp;&nbsp;{album.category}
+                  &nbsp;&nbsp;|&nbsp;&nbsp;작성자 {album.authorNickname}
+                </MetaText>
+                {album.isOwner && (
+                  <AuthorActions>
+                    <EditButton type="button" onClick={handleEdit}>
+                      <DesktopLabel>수정하기</DesktopLabel>
+                      <MobileLabel>수정</MobileLabel>
+                    </EditButton>
+                    <DeleteButton type="button" onClick={handleDelete}>
+                      <DesktopLabel>삭제하기</DesktopLabel>
+                      <MobileLabel>삭제</MobileLabel>
+                    </DeleteButton>
+                  </AuthorActions>
+                )}
+              </MetaRow>
 
-          <MainPhoto $background={toBackground(photos[selectedPhoto])} />
+              {photos.length > 0 ? (
+                <>
+                  <MainPhoto
+                    $background={toBackground(photos[selectedPhoto])}
+                  />
 
-          <ThumbnailList aria-label="사진 선택">
-            {photos.map((photo, index) => (
-              <ThumbnailButton
-                key={`${album.id}-${index}`}
-                type="button"
-                $active={selectedPhoto === index}
-                $background={toBackground(photo)}
-                aria-label={`${index + 1}번째 사진`}
-                aria-pressed={selectedPhoto === index}
-                onClick={() => setSelectedPhoto(index)}
-              />
-            ))}
-          </ThumbnailList>
+                  <ThumbnailList aria-label="사진 선택">
+                    {photos.map((photo, index) => (
+                      <ThumbnailButton
+                        key={`${album.id}-${index}`}
+                        type="button"
+                        $active={selectedPhoto === index}
+                        $background={toBackground(photo)}
+                        aria-label={`${index + 1}번째 사진`}
+                        aria-pressed={selectedPhoto === index}
+                        onClick={() => setSelectedPhoto(index)}
+                      />
+                    ))}
+                  </ThumbnailList>
+                </>
+              ) : (
+                <PhotoEmptyState>등록된 사진이 없습니다.</PhotoEmptyState>
+              )}
 
-          {album.content && (
-            <DescriptionBox>
-              <DescriptionTitle>내용</DescriptionTitle>
-              <Description>{album.content}</Description>
-            </DescriptionBox>
-          )}
+              {album.content && (
+                <DescriptionBox>
+                  <DescriptionTitle>내용</DescriptionTitle>
+                  <Description>{album.content}</Description>
+                </DescriptionBox>
+              )}
+            </>
+          ) : null}
         </Content>
       </Page>
 
-      {dialog && (
+      {dialog && album && (
         <DialogOverlay onClick={() => setDialog(null)}>
           <DialogBox role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <DialogMessage>{dialog.message}</DialogMessage>
@@ -118,6 +193,21 @@ const Content = styled.div`
   @media (max-width: ${breakpoints.tablet}) {
     width: calc(100% - 32px);
     padding: 24px 0 60px;
+  }
+`;
+
+const StateMessage = styled.div`
+  display: flex;
+  min-height: 640px;
+  align-items: center;
+  justify-content: center;
+  color: rgba(249, 249, 249, 0.72);
+  font-family: Pretendard, sans-serif;
+  font-size: 16px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    min-height: 480px;
+    font-size: 13px;
   }
 `;
 
@@ -255,6 +345,27 @@ const ThumbnailButton = styled.button`
     height: auto;
     aspect-ratio: 1;
     border-radius: 9px;
+  }
+`;
+
+const PhotoEmptyState = styled.div`
+  display: flex;
+  width: min(900px, 100%);
+  aspect-ratio: 15 / 8;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(249, 249, 249, 0.68);
+  font-family: Pretendard, sans-serif;
+  font-size: 14px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    width: calc(100% - 32px);
+    aspect-ratio: 326 / 260;
+    border-radius: 12px;
+    font-size: 12px;
   }
 `;
 
