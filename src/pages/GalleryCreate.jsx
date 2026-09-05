@@ -49,7 +49,7 @@ export default function GalleryCreate() {
   const [content, setContent] = useState("");
   const [photos, setPhotos] = useState([]);
   const [photoError, setPhotoError] = useState("");
-  const [uploadUrlStatus, setUploadUrlStatus] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("");
   const [isConverting, setIsConverting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,7 +76,7 @@ export default function GalleryCreate() {
 
     setIsConverting(true);
     setPhotoError("");
-    setUploadUrlStatus("");
+    setUploadStatus("");
 
     try {
       const normalizedFiles = await Promise.all(
@@ -113,7 +113,39 @@ export default function GalleryCreate() {
       return currentPhotos.filter((photo) => photo.id !== photoId);
     });
     setPhotoError("");
-    setUploadUrlStatus("");
+    setUploadStatus("");
+  };
+
+  const uploadPhotos = async () => {
+    const response = await axiosInstance.post("/photos/upload-url", {
+      files: photos.map(({ file }) => ({
+        contentType: file.type,
+      })),
+    });
+    const urls = response.data.data.urls;
+
+    if (!Array.isArray(urls) || urls.length !== photos.length) {
+      throw new Error("업로드 URL 응답이 올바르지 않습니다.");
+    }
+
+    await Promise.all(
+      urls.map(async ({ uploadUrl }, index) => {
+        const file = photos[index].file;
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("사진 업로드에 실패했습니다. 다시 시도해주세요.");
+        }
+      }),
+    );
+
+    return urls.map(({ fileUrl }) => fileUrl);
   };
 
   const handleSubmit = async (event) => {
@@ -128,23 +160,11 @@ export default function GalleryCreate() {
 
     setSubmitting(true);
     setPhotoError("");
-    setUploadUrlStatus("");
+    setUploadStatus("");
 
     try {
-      const response = await axiosInstance.post("/photos/upload-url", {
-        files: photos.map(({ file }) => ({
-          contentType: file.type,
-        })),
-      });
-      const urls = response.data.data.urls;
-
-      if (!Array.isArray(urls) || urls.length !== photos.length) {
-        throw new Error("업로드 URL 응답이 올바르지 않습니다.");
-      }
-
-      setUploadUrlStatus(
-        `${urls.length}개 사진의 업로드 URL을 발급받았습니다.`,
-      );
+      const fileUrls = await uploadPhotos();
+      setUploadStatus(`${fileUrls.length}개 사진을 업로드했습니다.`);
     } catch (requestError) {
       setPhotoError(
         requestError.response
@@ -224,8 +244,8 @@ export default function GalleryCreate() {
                 onChange={handlePhotoChange}
               />
               {photoError && <ErrorMessage role="alert">{photoError}</ErrorMessage>}
-              {uploadUrlStatus && (
-                <SuccessMessage role="status">{uploadUrlStatus}</SuccessMessage>
+              {uploadStatus && (
+                <SuccessMessage role="status">{uploadStatus}</SuccessMessage>
               )}
             </Field>
 
@@ -254,7 +274,7 @@ export default function GalleryCreate() {
                 {isConverting
                   ? "사진 변환 중..."
                   : submitting
-                    ? "URL 발급 중..."
+                    ? "사진 업로드 중..."
                     : "작성 완료"}
               </PrimaryButton>
             </ButtonRow>
