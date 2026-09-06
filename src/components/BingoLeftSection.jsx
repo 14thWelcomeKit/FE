@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { IoClose } from "react-icons/io5";
+import { getApiErrorMessage } from "../axiosInstance";
 import breakpoints from "./breakpoints";
 
 const HOUR_IN_SECONDS = 60 * 60;
-const MATCH_EXPIRES_IN_SECONDS = 48 * HOUR_IN_SECONDS;
 
 // API에 난이도가 추가되기 전까지 기존 칸별 더미 난이도를 유지합니다.
 const DUMMY_DIFFICULTIES = [
@@ -29,11 +29,10 @@ const formatRemainingTime = (seconds) => {
   return `${hours}:${minutes}:${secs}`;
 };
 
-export default function BingoLeftSection({ myCode, cells }) {
+export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying, queryError, onRetry }) {
   const [selectedCellId, setSelectedCellId] = useState(null);
   const [partnerCode, setPartnerCode] = useState("");
   const [inputError, setInputError] = useState("");
-  const [cellStates, setCellStates] = useState({});
   const [now, setNow] = useState(() => Date.now());
 
   const missions = cells.map((cell) => ({
@@ -42,41 +41,20 @@ export default function BingoLeftSection({ myCode, cells }) {
     difficulty: DUMMY_DIFFICULTIES[cell.cellId - 1],
     status: cell.status,
     matchedWithName: cell.matchedWithName,
+    expiresAt: Date.parse(cell.expiresAt),
   }));
-  const getCellState = (mission) =>
-    mission.status !== "INCOMPLETE" ? mission : cellStates[mission.id] ?? mission;
 
   const selectedMission = missions.find((mission) => mission.id === selectedCellId);
   const selectedState = selectedMission
-    ? getCellState(selectedMission)
+    ? selectedMission
     : null;
 
   useEffect(() => {
-    const hasPendingCell = Object.values(cellStates).some(
-      (cell) => cell.status === "PENDING",
-    );
-    if (!hasPendingCell) return undefined;
-
+    if (!cells.some((cell) => cell.status === "PENDING" && Number.isFinite(Date.parse(cell.expiresAt)))) return;
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [cellStates]);
-
-  useEffect(() => {
-    const expiredIds = Object.entries(cellStates)
-      .filter(
-        ([, state]) =>
-          state.status === "PENDING" && state.expiresAt <= now,
-      )
-      .map(([id]) => id);
-
-    if (!expiredIds.length) return;
-
-    setCellStates((previous) => {
-      const next = { ...previous };
-      expiredIds.forEach((id) => delete next[id]);
-      return next;
-    });
-  }, [cellStates, now]);
+  }, [cells]);
 
   const selectedRemainingSeconds =
     selectedState?.status === "PENDING" && Number.isFinite(selectedState.expiresAt)
@@ -84,14 +62,15 @@ export default function BingoLeftSection({ myCode, cells }) {
       : null;
 
   const openCodePanel = (mission) => {
-    const state = getCellState(mission);
-    if (state?.status === "COMPLETED") return;
+    const state = mission;
+    if (isVerifying || state?.status === "COMPLETED") return;
     setSelectedCellId(mission.id);
     setPartnerCode("");
     setInputError("");
   };
 
   const closeCodePanel = () => {
+    if (isVerifying) return;
     setSelectedCellId(null);
     setPartnerCode("");
     setInputError("");
@@ -103,21 +82,29 @@ export default function BingoLeftSection({ myCode, cells }) {
     if (inputError) setInputError("");
   };
 
-  const handleMatchRequest = () => {
-    if (!selectedMission) return;
+  const handleMatchRequest = async () => {
+    if (!selectedMission || isVerifying) return;
     if (!/^\d{4}$/.test(partnerCode)) {
       setInputError("상대방의 4자리 코드를 입력해주세요.");
       return;
     }
 
-    setCellStates((previous) => ({
-      ...previous,
-      [selectedMission.id]: {
-        status: "PENDING",
-        expiresAt: Date.now() + MATCH_EXPIRES_IN_SECONDS * 1000,
-      },
-    }));
-    setNow(Date.now());
+    if (partnerCode === myCode) {
+      setInputError("본인의 코드는 입력할 수 없습니다.");
+      return;
+    }
+    setInputError("");
+    try {
+      const result = await onVerify(selectedMission.id, partnerCode);
+      if (result?.status === "COMPLETED") {
+        setSelectedCellId(null);
+        setPartnerCode("");
+      }
+    } catch (error) {
+      if (error.code !== "ERR_CANCELED") {
+        setInputError(getApiErrorMessage(error, "인증 요청에 실패했습니다. 다시 시도해주세요."));
+      }
+    }
   };
 
   return (
@@ -131,6 +118,10 @@ export default function BingoLeftSection({ myCode, cells }) {
       </IntroSection>
 
       <BoardSection>
+        {queryError && <div role="alert">
+          <InputError>{queryError}</InputError>
+          <MatchButton type="button" onClick={onRetry} disabled={isVerifying}>다시 시도</MatchButton>
+        </div>}
         <MyCodeCard>
           <CodeBlock>
             <CodeLabel>내 코드</CodeLabel>
@@ -152,7 +143,7 @@ export default function BingoLeftSection({ myCode, cells }) {
 
         <BingoGrid>
           {missions.map((mission) => {
-            const state = getCellState(mission);
+            const state = mission;
             const isSelected = selectedMission?.id === mission.id;
             const isCompleted = state.status === "COMPLETED";
 
@@ -163,7 +154,7 @@ export default function BingoLeftSection({ myCode, cells }) {
                 $difficulty={mission.difficulty}
                 $status={state.status}
                 $selected={isSelected}
-                disabled={isCompleted}
+                disabled={isCompleted || isVerifying}
                 onClick={() => openCodePanel(mission)}
                 aria-label={`${mission.mission}, ${DIFFICULTY[mission.difficulty].shortLabel}`}
               >
@@ -216,6 +207,7 @@ export default function BingoLeftSection({ myCode, cells }) {
             ) : (
               <>
                 <CodeInput
+                  disabled={isVerifying}
                   value={partnerCode}
                   onChange={handleCodeChange}
                   inputMode="numeric"
@@ -226,8 +218,8 @@ export default function BingoLeftSection({ myCode, cells }) {
                   $hasError={Boolean(inputError)}
                 />
                 {inputError && <InputError role="alert">{inputError}</InputError>}
-                <MatchButton type="button" onClick={handleMatchRequest}>
-                  매칭 요청
+                <MatchButton type="button" onClick={handleMatchRequest} disabled={isVerifying}>
+                  {isVerifying ? "요청 중..." : "매칭 요청"}
                 </MatchButton>
               </>
             )}
