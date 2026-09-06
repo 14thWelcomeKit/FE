@@ -31,6 +31,8 @@ export default function GalleryDetail() {
   const [dialog, setDialog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     let ignore = false;
@@ -42,11 +44,24 @@ export default function GalleryDetail() {
       try {
         const response = await axiosInstance.get(`/photos/${galleryId}`);
         const post = response.data.data;
+        const photoUrls = post.photoUrls || [];
+        const photoIds = post.photoIds || [];
+
+        if (
+          photoUrls.length !== photoIds.length ||
+          photoIds.some((photoId) => !Number.isInteger(photoId))
+        ) {
+          throw new Error("사진 정보가 올바르지 않습니다.");
+        }
+
         const nextAlbum = {
           id: post.postId,
           title: post.title,
           category: post.category,
-          photos: (post.photoUrls || []).map(resolvePhotoUrl),
+          photos: photoUrls.map((photoUrl, index) => ({
+            photoId: photoIds[index],
+            url: resolvePhotoUrl(photoUrl),
+          })),
           content: post.content,
           date: post.eventDate.replaceAll("-", ". "),
           eventDate: post.eventDate,
@@ -62,10 +77,12 @@ export default function GalleryDetail() {
         if (!ignore) {
           setAlbum(null);
           setError(
-            getApiErrorMessage(
-              requestError,
-              "게시글을 불러오지 못했습니다.",
-            ),
+            requestError.response
+              ? getApiErrorMessage(
+                  requestError,
+                  "게시글을 불러오지 못했습니다.",
+                )
+              : requestError.message || "게시글을 불러오지 못했습니다.",
           );
         }
       } finally {
@@ -89,7 +106,29 @@ export default function GalleryDetail() {
   };
 
   const handleDelete = () => {
+    setDeleteError("");
     setDialog({ type: "delete", message: "정말 삭제하시겠습니까?" });
+  };
+
+  const confirmDelete = async () => {
+    if (deleting || !album?.isOwner) return;
+
+    setDeleting(true);
+    setDeleteError("");
+
+    try {
+      await axiosInstance.delete(`/photos/${album.id}`);
+      navigate("/gallery", { replace: true });
+    } catch (requestError) {
+      setDeleteError(
+        getApiErrorMessage(
+          requestError,
+          "게시글을 삭제하지 못했습니다.",
+        ),
+      );
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -127,16 +166,16 @@ export default function GalleryDetail() {
               {photos.length > 0 ? (
                 <>
                   <MainPhoto
-                    $background={toBackground(photos[selectedPhoto])}
+                    $background={toBackground(photos[selectedPhoto]?.url)}
                   />
 
                   <ThumbnailList aria-label="사진 선택">
                     {photos.map((photo, index) => (
                       <ThumbnailButton
-                        key={`${album.id}-${index}`}
+                        key={photo.photoId}
                         type="button"
                         $active={selectedPhoto === index}
-                        $background={toBackground(photo)}
+                        $background={toBackground(photo.url)}
                         aria-label={`${index + 1}번째 사진`}
                         aria-pressed={selectedPhoto === index}
                         onClick={() => setSelectedPhoto(index)}
@@ -160,15 +199,24 @@ export default function GalleryDetail() {
       </Page>
 
       {dialog && album && (
-        <DialogOverlay onClick={() => setDialog(null)}>
+        <DialogOverlay onClick={() => !deleting && setDialog(null)}>
           <DialogBox role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <DialogMessage>{dialog.message}</DialogMessage>
+            {deleteError && <DialogError role="alert">{deleteError}</DialogError>}
             <DialogButtons>
-              <DialogSecondary type="button" onClick={() => setDialog(null)}>
+              <DialogSecondary
+                type="button"
+                disabled={deleting}
+                onClick={() => setDialog(null)}
+              >
                 취소
               </DialogSecondary>
-              <DialogPrimary type="button" onClick={() => navigate("/gallery")}>
-                삭제
+              <DialogPrimary
+                type="button"
+                disabled={deleting}
+                onClick={confirmDelete}
+              >
+                {deleting ? "삭제 중..." : "삭제"}
               </DialogPrimary>
             </DialogButtons>
           </DialogBox>
@@ -272,6 +320,11 @@ const AuthorButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   @media (max-width: ${breakpoints.tablet}) {
     min-height: 31px;
@@ -440,6 +493,15 @@ const DialogMessage = styled.p`
   text-align: center;
 `;
 
+const DialogError = styled.p`
+  margin: 14px 0 0;
+  color: #ffb089;
+  font-family: Pretendard, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+`;
+
 const DialogButtons = styled.div`
   display: flex;
   justify-content: center;
@@ -457,6 +519,11 @@ const DialogButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 `;
 
 const DialogSecondary = styled(DialogButton)`
