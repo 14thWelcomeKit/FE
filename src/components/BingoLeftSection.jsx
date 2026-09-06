@@ -6,32 +6,13 @@ import breakpoints from "./breakpoints";
 const HOUR_IN_SECONDS = 60 * 60;
 const MATCH_EXPIRES_IN_SECONDS = 48 * HOUR_IN_SECONDS;
 
-const FIXED_MISSIONS = [
-  { id: 1, difficulty: 1, mission: "나와 MBTI 맨 앞자리(E/I)가 반대인 사람" },
-  { id: 2, difficulty: 2, mission: "나와 다른 파트인 사람 (프론트/백)" },
-  { id: 3, difficulty: 3, mission: "운영진 중 한 명과 같이 셀카 찍기" },
-  { id: 4, difficulty: 1, mission: "오늘 나와 비슷한 색깔의 상의를 입은 사람" },
-  { id: 5, difficulty: 2, mission: "나와 다른 OS를 사용하는 사람 (맥북/윈도우)" },
-  { id: 6, difficulty: 2, mission: "나와 같은 기술 스택(React, Spring 등)에 가장 관심 있는 사람" },
-  { id: 7, difficulty: 3, mission: "서로의 최애 학교 앞 밥집 1개씩 추천해주기" },
-  { id: 8, difficulty: 1, mission: "탕수육 부먹/찍먹 취향이 나와 딱 맞는 사람" },
-  { id: 9, difficulty: 2, mission: "VS Code 테마가 나와 같은 사람 (다크모드/라이트모드)" },
-  { id: 10, difficulty: 1, mission: "민트초코를 내 돈 주고 사 먹는 사람 (또는 절대 안 먹는 사람)" },
-  { id: 11, difficulty: 3, mission: "다른 팀 부원과 다음 주 내로 밥약/커피챗 약속 잡기 (잡고 나서 코드 교환)" },
-  { id: 12, difficulty: 1, mission: "학교까지 통학 시간 왕복 2시간 이상인 '프로통학러'" },
-  { id: 13, difficulty: 2, mission: "최근 한 달 내에 깃허브 잔디(커밋) 7일 연속 심어본 사람" },
-  { id: 14, difficulty: 1, mission: "나와 출신 지역(또는 거주 동네)이 비슷한 사람" },
-  { id: 15, difficulty: 3, mission: "동아리방(또는 모임 장소)에서 내 양옆 자리에 앉은 사람" },
-  { id: 16, difficulty: 1, mission: "이름에 나와 같은 글자가 하나라도 들어가는 사람" },
-  { id: 17, difficulty: 2, mission: "이번 2학기에 꼭 써보고 싶은 툴이나 라이브러리가 있는 사람" },
-  { id: 18, difficulty: 1, mission: "나와 같은 달에 태어난 사람" },
-  { id: 19, difficulty: 3, mission: "서로의 깃허브 맞팔(Follow) 하기" },
-  { id: 20, difficulty: 1, mission: "오늘 나와 같은 교통수단으로 온 사람" },
-  { id: 21, difficulty: 2, mission: "개발하다가 새벽 3시 이후까지 코딩해본 적 있는 사람" },
-  { id: 22, difficulty: 1, mission: "오늘 알람을 2번 이상 끄고 일어난 사람" },
-  { id: 23, difficulty: 3, mission: "상대방에게 개발할 때 유용하게 쓰는 사이트/툴 하나 추천받아 직접 들어가 보기" },
-  { id: 24, difficulty: 2, mission: "나와 가장 자주 쓰는 AI 코딩 도구가 같은 사람" },
-  { id: 25, difficulty: 1, mission: "이번 주에 카페를 3번 이상 간 사람" },
+// API에 난이도가 추가되기 전까지 기존 칸별 더미 난이도를 유지합니다.
+const DUMMY_DIFFICULTIES = [
+  1, 2, 3, 1, 2,
+  2, 3, 1, 2, 1,
+  3, 1, 2, 1, 3,
+  1, 2, 1, 3, 1,
+  2, 1, 3, 2, 1,
 ];
 
 const DIFFICULTY = {
@@ -48,15 +29,26 @@ const formatRemainingTime = (seconds) => {
   return `${hours}:${minutes}:${secs}`;
 };
 
-export default function BingoLeftSection({ myCode }) {
-  const [selectedMission, setSelectedMission] = useState(null);
+export default function BingoLeftSection({ myCode, cells }) {
+  const [selectedCellId, setSelectedCellId] = useState(null);
   const [partnerCode, setPartnerCode] = useState("");
   const [inputError, setInputError] = useState("");
   const [cellStates, setCellStates] = useState({});
   const [now, setNow] = useState(() => Date.now());
 
+  const missions = cells.map((cell) => ({
+    id: cell.cellId,
+    mission: cell.missionContent,
+    difficulty: DUMMY_DIFFICULTIES[cell.cellId - 1],
+    status: cell.status,
+    matchedWithName: cell.matchedWithName,
+  }));
+  const getCellState = (mission) =>
+    mission.status !== "INCOMPLETE" ? mission : cellStates[mission.id] ?? mission;
+
+  const selectedMission = missions.find((mission) => mission.id === selectedCellId);
   const selectedState = selectedMission
-    ? cellStates[selectedMission.id] ?? { status: "INCOMPLETE" }
+    ? getCellState(selectedMission)
     : null;
 
   useEffect(() => {
@@ -87,20 +79,20 @@ export default function BingoLeftSection({ myCode }) {
   }, [cellStates, now]);
 
   const selectedRemainingSeconds =
-    selectedState?.status === "PENDING"
+    selectedState?.status === "PENDING" && Number.isFinite(selectedState.expiresAt)
       ? Math.max(0, Math.ceil((selectedState.expiresAt - now) / 1000))
       : null;
 
   const openCodePanel = (mission) => {
-    const state = cellStates[mission.id];
+    const state = getCellState(mission);
     if (state?.status === "COMPLETED") return;
-    setSelectedMission(mission);
+    setSelectedCellId(mission.id);
     setPartnerCode("");
     setInputError("");
   };
 
   const closeCodePanel = () => {
-    setSelectedMission(null);
+    setSelectedCellId(null);
     setPartnerCode("");
     setInputError("");
   };
@@ -159,8 +151,8 @@ export default function BingoLeftSection({ myCode }) {
         </DifficultyLegend>
 
         <BingoGrid>
-          {FIXED_MISSIONS.map((mission) => {
-            const state = cellStates[mission.id] ?? { status: "INCOMPLETE" };
+          {missions.map((mission) => {
+            const state = getCellState(mission);
             const isSelected = selectedMission?.id === mission.id;
             const isCompleted = state.status === "COMPLETED";
 
@@ -180,7 +172,7 @@ export default function BingoLeftSection({ myCode }) {
                   <CellStatusText>상대방 입력 대기 중</CellStatusText>
                 ) : state.status === "COMPLETED" ? (
                   <CellStatusText>
-                    {state.matchedUserName}님과<br />미션 완료
+                    {state.matchedWithName && <>{state.matchedWithName}님과<br /></>}미션 완료
                   </CellStatusText>
                 ) : (
                   <CellMission>{mission.mission}</CellMission>
@@ -197,7 +189,7 @@ export default function BingoLeftSection({ myCode }) {
         </PolicyNotice>
       </BoardSection>
 
-      {selectedMission && (
+      {selectedMission && selectedState?.status !== "COMPLETED" && (
         <>
           <PanelOverlay type="button" aria-label="코드 입력창 닫기" onClick={closeCodePanel} />
           <CodePanel role="dialog" aria-modal="true" aria-labelledby="code-panel-title">
@@ -212,11 +204,13 @@ export default function BingoLeftSection({ myCode }) {
             {selectedState?.status === "PENDING" ? (
               <PendingBox>
                 <PendingLabel>대기 상태</PendingLabel>
-                <PendingTime>
-                  {formatRemainingTime(selectedRemainingSeconds ?? MATCH_EXPIRES_IN_SECONDS)}
-                </PendingTime>
+                {selectedRemainingSeconds !== null && (
+                  <PendingTime>
+                    {formatRemainingTime(selectedRemainingSeconds)}
+                  </PendingTime>
+                )}
                 <PendingDescription>
-                  48시간 안에 상대방이 같은 칸에서 내 코드를 입력하면 완료돼요.
+                  상대방이 같은 칸에서 내 코드를 입력하기를 기다리고 있어요.
                 </PendingDescription>
               </PendingBox>
             ) : (

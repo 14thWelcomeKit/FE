@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import styled from "styled-components";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 import Header from "../components/Header";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
@@ -22,12 +24,66 @@ const MOCK_MY_RANKING = {
 const MOCK_RANKING_UPDATED_AT = new Date(2026, 8, 3, 0, 0, 0);
 
 export default function Bingo() {
+  const [board, setBoard] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchBoard = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await axiosInstance.get("/bingo", {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        const data = response.data?.data;
+        if (
+          typeof data?.myCode !== "string" ||
+          !Array.isArray(data.cells) ||
+          data.cells.length !== 25 ||
+          new Set(data.cells.map((cell) => cell?.cellId)).size !== 25 ||
+          !data.cells.every((cell) =>
+            Number.isInteger(cell?.cellId) && cell.cellId >= 1 && cell.cellId <= 25 &&
+            typeof cell.missionContent === "string" &&
+            ["INCOMPLETE", "PENDING", "COMPLETED"].includes(cell.status) &&
+            (cell.matchedWithName === null || typeof cell.matchedWithName === "string")
+          )
+        ) {
+          throw new Error("Invalid bingo response");
+        }
+        setBoard({ ...data, cells: [...data.cells].sort((a, b) => a.cellId - b.cellId) });
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          setError(getApiErrorMessage(requestError, "빙고판을 불러오지 못했습니다."));
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    };
+    fetchBoard();
+    return () => controller.abort();
+  }, [retryCount]);
+
   return (
     <Root>
       <Header />
       <BingoPageContainer>
         <BingoLayout>
-          <BingoLeftSection myCode="1234" />
+          {isLoading ? (
+            <QueryNotice role="status">빙고판을 불러오는 중입니다.</QueryNotice>
+          ) : error ? (
+            <QueryNotice role="alert">
+              <p>{error}</p>
+              <RetryButton type="button" onClick={() => setRetryCount((count) => count + 1)}>
+                다시 시도
+              </RetryButton>
+            </QueryNotice>
+          ) : (
+            <BingoLeftSection myCode={board.myCode} cells={board.cells} />
+          )}
           <BingoRightSection
             ranking={MOCK_RANKING}
             myRanking={MOCK_MY_RANKING}
@@ -38,6 +94,23 @@ export default function Bingo() {
     </Root>
   );
 }
+
+const QueryNotice = styled.div`
+  grid-area: board;
+  padding: 2rem;
+  color: var(--white);
+  text-align: center;
+`;
+
+const RetryButton = styled.button`
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--orange);
+  color: var(--white);
+  font: inherit;
+  cursor: pointer;
+`;
 
 const Root = styled.div`
   min-height: 100vh;
