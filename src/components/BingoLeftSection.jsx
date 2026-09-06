@@ -6,14 +6,47 @@ import breakpoints from "./breakpoints";
 
 const HOUR_IN_SECONDS = 60 * 60;
 
-// API에 난이도가 추가되기 전까지 기존 칸별 더미 난이도를 유지합니다.
-const DUMMY_DIFFICULTIES = [
-  1, 2, 3, 1, 2,
-  2, 3, 1, 2, 1,
-  3, 1, 2, 1, 3,
-  1, 2, 1, 3, 1,
-  2, 1, 3, 2, 1,
-];
+// (키는 백엔드 missionContent와 글자 단위로 정확히 일치해야 함)
+const MISSION_DIFFICULTY = {
+  // 1단계 · 가벼운 TMI
+  "나와 MBTI 맨 앞자리(E/I)가 반대인 사람": 1,
+  "오늘 나와 비슷한 색깔의 상의를 입은 사람": 1,
+  "탕수육 부먹/찍먹 취향이 나와 딱 맞는 사람": 1,
+  "민트초코를 내 돈 주고 사 먹는 사람 (또는 절대 안 먹는 사람)": 1,
+  "학교까지 통학 시간 왕복 2시간 이상인 '프로통학러'": 1,
+  "나와 출신 지역(또는 거주 동네)이 같은 사람": 1,
+  "이름에 나와 같은 글자가 하나라도 들어가는 사람": 1,
+  "나와 생일이 같은 달인 사람": 1,
+  "나와 같은 과목을 수강하는 사람": 1,
+
+  // 2단계 · 개발자 & 멋사 공감대
+  "나와 다른 파트인 사람 (프론트/백)": 2,
+  "나와 다른 OS를 사용하는 사람 (맥북/윈도우)": 2,
+  "나와 같은 주력 언어를 사용하는 사람 (Java/Python/JavaScript 등)": 2,
+  "나와 같은 IDE를 사용하는 사람 (VS Code/IntelliJ 등)": 2,
+  "최근 한 달 내에 깃허브 잔디(커밋) 7일 연속 심어본 사람": 2,
+  "GitHub 프로필에 직접 작성한 Profile README가 있는 사람 (기본 빈 README 제외)": 2,
+  "본인 파트와 관련된 GitHub Repository가 10개 이상인 사람": 2,
+  "직접 배포 작업을 해본 사람": 2,
+
+  // 3단계 · 적극적인 친목 유도
+  "운영진 중 한 명과 같이 셀카 찍기": 3,
+  "서로의 최애 학교 앞 밥집 1개씩 추천해주기": 3,
+  "다른 팀 부원과 다음 주 내로 밥약/커피챗 약속 잡기 (잡고 나서 코드 교환)": 3,
+  "동아리방(또는 모임 장소)에서 내 양옆 자리에 앉은 사람": 3,
+  "서로의 깃허브 맞팔(Follow) 하기": 3,
+  "서로의 인스타그램 맞팔 (Follow) 하기": 3,
+  "운영진·아기사자 구분 없이 같은 연생인 사람과 사진 찍기": 3,
+  "같이 카공 하기": 3,
+};
+
+// 공백 차이로 인한 불일치를 막기 위해 모든 공백을 제거한 키로 매핑을 다시 만든다.
+const MISSION_DIFFICULTY_BY_TEXT = Object.fromEntries(
+  Object.entries(MISSION_DIFFICULTY).map(([key, value]) => [
+    key.replace(/\s/g, ""),
+    value,
+  ]),
+);
 
 const DIFFICULTY = {
   1: { label: "1단계 · 가벼운 TMI", shortLabel: "1단계" },
@@ -23,13 +56,25 @@ const DIFFICULTY = {
 
 const formatRemainingTime = (seconds) => {
   const safeSeconds = Math.max(0, seconds);
-  const hours = String(Math.floor(safeSeconds / HOUR_IN_SECONDS)).padStart(2, "0");
-  const minutes = String(Math.floor((safeSeconds % HOUR_IN_SECONDS) / 60)).padStart(2, "0");
+  const hours = String(Math.floor(safeSeconds / HOUR_IN_SECONDS)).padStart(
+    2,
+    "0",
+  );
+  const minutes = String(
+    Math.floor((safeSeconds % HOUR_IN_SECONDS) / 60),
+  ).padStart(2, "0");
   const secs = String(safeSeconds % 60).padStart(2, "0");
   return `${hours}:${minutes}:${secs}`;
 };
 
-export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying, queryError, onRetry }) {
+export default function BingoLeftSection({
+  myCode,
+  cells,
+  onVerify,
+  isVerifying,
+  queryError,
+  onRetry,
+}) {
   const [selectedCellId, setSelectedCellId] = useState(null);
   const [partnerCode, setPartnerCode] = useState("");
   const [inputError, setInputError] = useState("");
@@ -38,26 +83,36 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
   const missions = cells.map((cell) => ({
     id: cell.cellId,
     mission: cell.missionContent,
-    difficulty: DUMMY_DIFFICULTIES[cell.cellId - 1],
+        difficulty:
+      MISSION_DIFFICULTY_BY_TEXT[(cell.missionContent ?? "").replace(/\s/g, "")] ??
+      1,
     status: cell.status,
     matchedWithName: cell.matchedWithName,
     expiresAt: Date.parse(cell.expiresAt),
   }));
 
-  const selectedMission = missions.find((mission) => mission.id === selectedCellId);
-  const selectedState = selectedMission
-    ? selectedMission
-    : null;
+  const selectedMission = missions.find(
+    (mission) => mission.id === selectedCellId,
+  );
+  const selectedState = selectedMission ? selectedMission : null;
 
   useEffect(() => {
-    if (!cells.some((cell) => cell.status === "PENDING" && Number.isFinite(Date.parse(cell.expiresAt)))) return;
+    if (
+      !cells.some(
+        (cell) =>
+          cell.status === "PENDING" &&
+          Number.isFinite(Date.parse(cell.expiresAt)),
+      )
+    )
+      return;
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [cells]);
 
   const selectedRemainingSeconds =
-    selectedState?.status === "PENDING" && Number.isFinite(selectedState.expiresAt)
+    selectedState?.status === "PENDING" &&
+    Number.isFinite(selectedState.expiresAt)
       ? Math.max(0, Math.ceil((selectedState.expiresAt - now) / 1000))
       : null;
 
@@ -102,7 +157,12 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
       }
     } catch (error) {
       if (error.code !== "ERR_CANCELED") {
-        setInputError(getApiErrorMessage(error, "인증 요청에 실패했습니다. 다시 시도해주세요."));
+        setInputError(
+          getApiErrorMessage(
+            error,
+            "인증 요청에 실패했습니다. 다시 시도해주세요.",
+          ),
+        );
       }
     }
   };
@@ -118,10 +178,14 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
       </IntroSection>
 
       <BoardSection>
-        {queryError && <div role="alert">
-          <InputError>{queryError}</InputError>
-          <MatchButton type="button" onClick={onRetry} disabled={isVerifying}>다시 시도</MatchButton>
-        </div>}
+        {queryError && (
+          <div role="alert">
+            <InputError>{queryError}</InputError>
+            <MatchButton type="button" onClick={onRetry} disabled={isVerifying}>
+              다시 시도
+            </MatchButton>
+          </div>
+        )}
         <MyCodeCard>
           <CodeBlock>
             <CodeLabel>내 코드</CodeLabel>
@@ -158,12 +222,20 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
                 onClick={() => openCodePanel(mission)}
                 aria-label={`${mission.mission}, ${DIFFICULTY[mission.difficulty].shortLabel}`}
               >
-                <CellDifficulty>{DIFFICULTY[mission.difficulty].shortLabel}</CellDifficulty>
+                <CellDifficulty>
+                  {DIFFICULTY[mission.difficulty].shortLabel}
+                </CellDifficulty>
                 {state.status === "PENDING" ? (
                   <CellStatusText>상대방 입력 대기 중</CellStatusText>
                 ) : state.status === "COMPLETED" ? (
                   <CellStatusText>
-                    {state.matchedWithName && <>{state.matchedWithName}님과<br /></>}미션 완료
+                    {state.matchedWithName && (
+                      <>
+                        {state.matchedWithName}님과
+                        <br />
+                      </>
+                    )}
+                    미션 완료
                   </CellStatusText>
                 ) : (
                   <CellMission>{mission.mission}</CellMission>
@@ -182,10 +254,22 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
 
       {selectedMission && selectedState?.status !== "COMPLETED" && (
         <>
-          <PanelOverlay type="button" aria-label="코드 입력창 닫기" onClick={closeCodePanel} />
-          <CodePanel role="dialog" aria-modal="true" aria-labelledby="code-panel-title">
+          <PanelOverlay
+            type="button"
+            aria-label="코드 입력창 닫기"
+            onClick={closeCodePanel}
+          />
+          <CodePanel
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="code-panel-title"
+          >
             <PanelHandle />
-            <PanelClose type="button" aria-label="닫기" onClick={closeCodePanel}>
+            <PanelClose
+              type="button"
+              aria-label="닫기"
+              onClick={closeCodePanel}
+            >
               <IoClose />
             </PanelClose>
             <PanelEyebrow>선택한 미션</PanelEyebrow>
@@ -217,8 +301,14 @@ export default function BingoLeftSection({ myCode, cells, onVerify, isVerifying,
                   aria-label="상대방 코드"
                   $hasError={Boolean(inputError)}
                 />
-                {inputError && <InputError role="alert">{inputError}</InputError>}
-                <MatchButton type="button" onClick={handleMatchRequest} disabled={isVerifying}>
+                {inputError && (
+                  <InputError role="alert">{inputError}</InputError>
+                )}
+                <MatchButton
+                  type="button"
+                  onClick={handleMatchRequest}
+                  disabled={isVerifying}
+                >
                   {isVerifying ? "요청 중..." : "매칭 요청"}
                 </MatchButton>
               </>
@@ -323,7 +413,11 @@ const LegendItem = styled.div`
   min-height: 1.75rem;
   border: 1px solid
     ${({ $difficulty }) =>
-      $difficulty === 1 ? "#9d9d9d" : $difficulty === 2 ? "#fff600" : "#ffaa00"};
+      $difficulty === 1
+        ? "#9d9d9d"
+        : $difficulty === 2
+          ? "#fff600"
+          : "#ffaa00"};
   border-radius: 999px;
   background: ${({ $difficulty }) =>
     $difficulty === 1 ? "#ffffff" : $difficulty === 2 ? "#fffbc7" : "#ffe3cc"};
@@ -387,7 +481,9 @@ const BingoCell = styled.button`
   cursor: ${({ disabled }) => (disabled ? "default" : "pointer")};
   overflow: hidden;
   box-sizing: border-box;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
