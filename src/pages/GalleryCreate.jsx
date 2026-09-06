@@ -3,17 +3,59 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import breakpoints from "../components/breakpoints";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const MAX_PHOTOS = 5;
+const CATEGORIES = ["14기", "13기", "12기"];
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const isHeicFile = (file) =>
+  /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+
+const normalizeImageFile = async (file) => {
+  if (isHeicFile(file)) {
+    const { default: heic2any } = await import("heic2any");
+    const result = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+    const blob = Array.isArray(result) ? result[0] : result;
+
+    return new File(
+      [blob],
+      file.name.replace(/\.[^.]+$/, ".jpg"),
+      { type: "image/jpeg" },
+    );
+  }
+
+  if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+    throw new Error(
+      "지원하지 않는 이미지 형식입니다. (jpeg, png, webp만 가능)",
+    );
+  }
+
+  return file;
+};
 
 export default function GalleryCreate() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const objectUrlsRef = useRef([]);
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("14기");
+  const [eventDate, setEventDate] = useState("");
   const [content, setContent] = useState("");
   const [photos, setPhotos] = useState([]);
   const [photoError, setPhotoError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStage, setSubmitStage] = useState("");
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -22,7 +64,10 @@ export default function GalleryCreate() {
     };
   }, []);
 
-  const handlePhotoChange = (event) => {
+  const handlePhotoChange = async (event) => {
+    if (isConverting || submitting) return;
+
+    const input = event.currentTarget;
     const selectedFiles = Array.from(event.target.files || []);
 
     if (!selectedFiles.length) return;
@@ -33,20 +78,36 @@ export default function GalleryCreate() {
       return;
     }
 
-    const nextPhotos = selectedFiles.map((file, index) => {
-      const preview = URL.createObjectURL(file);
-      objectUrlsRef.current.push(preview);
-
-      return {
-        id: `${file.name}-${file.lastModified}-${index}`,
-        name: file.name,
-        preview,
-      };
-    });
-
-    setPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
+    setIsConverting(true);
     setPhotoError("");
-    event.target.value = "";
+    setFormError("");
+
+    try {
+      const normalizedFiles = await Promise.all(
+        selectedFiles.map(normalizeImageFile),
+      );
+      const batchId = Date.now();
+      const nextPhotos = normalizedFiles.map((file, index) => {
+        const preview = URL.createObjectURL(file);
+        objectUrlsRef.current.push(preview);
+
+        return {
+          id: `${file.name}-${file.lastModified}-${batchId}-${index}`,
+          name: file.name,
+          file,
+          preview,
+        };
+      });
+
+      setPhotos((currentPhotos) => [...currentPhotos, ...nextPhotos]);
+    } catch (conversionError) {
+      setPhotoError(
+        conversionError.message || "이미지 변환 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setIsConverting(false);
+      input.value = "";
+    }
   };
 
   const handlePhotoRemove = (photoId) => {
@@ -56,11 +117,111 @@ export default function GalleryCreate() {
       return currentPhotos.filter((photo) => photo.id !== photoId);
     });
     setPhotoError("");
+    setFormError("");
   };
 
-  const handleSubmit = (event) => {
+  const uploadPhotos = async () => {
+    const response = await axiosInstance.post("/photos/upload-url", {
+      files: photos.map(({ file }) => ({
+        contentType: file.type,
+      })),
+    });
+    const urls = response.data.data.urls;
+
+    if (!Array.isArray(urls) || urls.length !== photos.length) {
+      throw new Error("업로드 URL 응답이 올바르지 않습니다.");
+    }
+
+    await Promise.all(
+      urls.map(async ({ uploadUrl }, index) => {
+        const file = photos[index].file;
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("사진 업로드에 실패했습니다. 다시 시도해주세요.");
+        }
+      }),
+    );
+
+    return urls.map(({ fileUrl }) => fileUrl);
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    navigate("/gallery");
+
+    if (submitting || isConverting) return;
+
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+
+    setPhotoError("");
+    setFormError("");
+
+    if (!trimmedTitle || trimmedTitle.length > 30) {
+      setFormError("제목은 30자 이내로 입력해주세요.");
+      return;
+    }
+
+    if (content.length > 1000) {
+      setFormError("내용은 1000자 이내로 입력해주세요.");
+      return;
+    }
+
+    if (photos.length < 1 || photos.length > MAX_PHOTOS) {
+      setPhotoError("사진을 1장 이상 5장 이하로 선택해주세요.");
+      return;
+    }
+
+    if (!category) {
+      setFormError("기수 카테고리를 선택해주세요.");
+      return;
+    }
+
+    if (!eventDate) {
+      setFormError("사진에 해당하는 행사일을 입력해주세요.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitStage("uploading");
+
+    try {
+      const photoUrls = await uploadPhotos();
+      setSubmitStage("creating");
+
+      const response = await axiosInstance.post("/photos", {
+        title: trimmedTitle,
+        category,
+        photoUrls,
+        content: trimmedContent,
+        eventDate,
+      });
+      const postId = response.data.data.postId;
+
+      if (!postId) {
+        throw new Error("게시글 등록 응답이 올바르지 않습니다.");
+      }
+
+      navigate(`/gallery/${postId}`);
+    } catch (requestError) {
+      setFormError(
+        requestError.response
+          ? getApiErrorMessage(
+              requestError,
+              "게시글 등록에 실패했습니다.",
+            )
+          : requestError.message || "게시글 등록에 실패했습니다.",
+      );
+    } finally {
+      setSubmitting(false);
+      setSubmitStage("");
+    }
   };
 
   return (
@@ -70,7 +231,7 @@ export default function GalleryCreate() {
         <Content>
           <PageTitle>사진 글 작성하기</PageTitle>
 
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit} noValidate>
             <Field>
               <FieldHeader>
                 <FieldLabel htmlFor="gallery-title">제목</FieldLabel>
@@ -80,12 +241,56 @@ export default function GalleryCreate() {
                 id="gallery-title"
                 value={title}
                 maxLength={30}
+                required
+                disabled={submitting}
                 placeholder="제목을 입력해주세요"
-                onChange={(event) => setTitle(event.target.value)}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  setFormError("");
+                }}
               />
             </Field>
 
             <Field>
+              <FieldHeader>
+                <FieldLabel htmlFor="gallery-category">기수</FieldLabel>
+              </FieldHeader>
+              <SelectInput
+                id="gallery-category"
+                value={category}
+                required
+                disabled={submitting}
+                onChange={(event) => {
+                  setCategory(event.target.value);
+                  setFormError("");
+                }}
+              >
+                {CATEGORIES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+
+            <Field>
+              <FieldHeader>
+                <FieldLabel htmlFor="gallery-event-date">행사일</FieldLabel>
+              </FieldHeader>
+              <DateInput
+                id="gallery-event-date"
+                type="date"
+                value={eventDate}
+                required
+                disabled={submitting}
+                onChange={(event) => {
+                  setEventDate(event.target.value);
+                  setFormError("");
+                }}
+              />
+            </Field>
+
+            <PhotoField>
               <FieldHeader>
                 <FieldLabel>사진 업로드</FieldLabel>
                 <Counter>{photos.length}/5</Counter>
@@ -100,6 +305,7 @@ export default function GalleryCreate() {
                     <RemovePhotoButton
                       type="button"
                       aria-label={`${photo.name} 삭제`}
+                      disabled={isConverting || submitting}
                       onClick={() => handlePhotoRemove(photo.id)}
                     >
                       ×
@@ -111,6 +317,7 @@ export default function GalleryCreate() {
                 {photos.length < MAX_PHOTOS && (
                   <AddPhotoButton
                     type="button"
+                    disabled={isConverting || submitting}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     + 사진 추가
@@ -120,12 +327,13 @@ export default function GalleryCreate() {
               <HiddenFileInput
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,.heic,.heif"
                 multiple
+                disabled={isConverting || submitting}
                 onChange={handlePhotoChange}
               />
               {photoError && <ErrorMessage role="alert">{photoError}</ErrorMessage>}
-            </Field>
+            </PhotoField>
 
             <Field>
               <FieldHeader>
@@ -136,16 +344,37 @@ export default function GalleryCreate() {
                 id="gallery-content"
                 value={content}
                 maxLength={1000}
+                disabled={submitting}
                 placeholder="내용을 입력해주세요"
-                onChange={(event) => setContent(event.target.value)}
+                onChange={(event) => {
+                  setContent(event.target.value);
+                  setFormError("");
+                }}
               />
             </Field>
 
+            {formError && <ErrorMessage role="alert">{formError}</ErrorMessage>}
+
             <ButtonRow>
-              <SecondaryButton type="button" onClick={() => navigate("/gallery")}>
+              <SecondaryButton
+                type="button"
+                disabled={isConverting || submitting}
+                onClick={() => navigate("/gallery")}
+              >
                 취소
               </SecondaryButton>
-              <PrimaryButton type="submit">작성 완료</PrimaryButton>
+              <PrimaryButton
+                type="submit"
+                disabled={isConverting || submitting}
+              >
+                {isConverting
+                  ? "사진 변환 중..."
+                  : submitting
+                    ? submitStage === "creating"
+                      ? "게시글 등록 중..."
+                      : "사진 업로드 중..."
+                    : "작성 완료"}
+              </PrimaryButton>
             </ButtonRow>
           </Form>
         </Content>
@@ -214,16 +443,16 @@ const Field = styled.div`
   flex-direction: column;
   gap: 8px;
 
-  &:nth-of-type(2) {
-    gap: 24px;
-  }
-
   @media (max-width: ${breakpoints.tablet}) {
     gap: 7px;
+  }
+`;
 
-    &:nth-of-type(2) {
-      gap: 18px;
-    }
+const PhotoField = styled(Field)`
+  gap: 24px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    gap: 18px;
   }
 `;
 
@@ -396,6 +625,39 @@ const ErrorMessage = styled.p`
   font-size: 11px;
 `;
 
+const SelectInput = styled.select`
+  ${fieldSurface}
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+
+  option {
+    color: #1f1f1f;
+  }
+
+  @media (max-width: ${breakpoints.tablet}) {
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
+`;
+
+const DateInput = styled.input`
+  ${fieldSurface}
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 10px;
+  color-scheme: dark;
+  font-size: 13px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -418,6 +680,11 @@ const ActionButton = styled.button`
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
 
   @media (max-width: ${breakpoints.tablet}) {
     min-height: 31px;
