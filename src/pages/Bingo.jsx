@@ -7,22 +7,6 @@ import breakpoints from "../components/breakpoints";
 import BingoLeftSection from "../components/BingoLeftSection";
 import BingoRightSection from "../components/BingoRightSection";
 
-const MOCK_RANKING = [
-  { id: 1, rank: 1, name: "김주희", completedCount: 18 },
-  { id: 2, rank: 2, name: "한림", completedCount: 16 },
-  { id: 3, rank: 3, name: "이도현", completedCount: 14 },
-  { id: 4, rank: 3, name: "박서연", completedCount: 14 },
-  { id: 5, rank: 5, name: "최민준", completedCount: 11 },
-];
-
-const MOCK_MY_RANKING = {
-  rank: 8,
-  name: "김코덱스",
-  completedCount: 9,
-};
-
-const MOCK_RANKING_UPDATED_AT = new Date(2026, 8, 3, 0, 0, 0);
-
 export default function Bingo() {
   const [board, setBoard] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +15,45 @@ export default function Bingo() {
   const verifyingRef = useRef(false);
   const queryRef = useRef(null);
   const verifyRef = useRef(null);
+  const [rankingData, setRankingData] = useState(null);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [rankingError, setRankingError] = useState("");
+  const rankingQueryRef = useRef(null);
+
+  const fetchRanking = useCallback(async () => {
+    rankingQueryRef.current?.abort();
+    const controller = new AbortController();
+    rankingQueryRef.current = controller;
+    setRankingLoading(true);
+    setRankingError("");
+    try {
+      const response = await axiosInstance.get("/bingo/ranking", { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const data = response.data?.data;
+      const isRanker = (member) => member &&
+        Number.isInteger(member.userId) && typeof member.nickname === "string" &&
+        Number.isInteger(member.score) && member.score >= 0 &&
+        (member.rank === null || (Number.isInteger(member.rank) && member.rank > 0));
+      if (!Array.isArray(data?.topRankers) || !data.topRankers.every(isRanker) ||
+          !isRanker(data.myRanking) || typeof data.updatedAt !== "string" ||
+          !Number.isFinite(Date.parse(data.updatedAt))) {
+        throw new Error("Invalid ranking response");
+      }
+      setRankingData(data);
+    } catch (requestError) {
+      if (!controller.signal.aborted) {
+        setRankingError(getApiErrorMessage(requestError, "랭킹을 불러오지 못했습니다."));
+      }
+    } finally {
+      if (!controller.signal.aborted) setRankingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRanking();
+    return () => rankingQueryRef.current?.abort();
+  }, [fetchRanking]);
+
 
   const fetchBoard = useCallback(async () => {
     if (verifyingRef.current) return;
@@ -164,9 +187,12 @@ export default function Bingo() {
               queryError={error} onRetry={fetchBoard} />
           )}
           <BingoRightSection
-            ranking={MOCK_RANKING}
-            myRanking={MOCK_MY_RANKING}
-            updatedAt={MOCK_RANKING_UPDATED_AT}
+            ranking={rankingData?.topRankers ?? []}
+            myRanking={rankingData?.myRanking}
+            updatedAt={rankingData?.updatedAt}
+            isLoading={rankingLoading}
+            error={rankingError}
+            onRetry={fetchRanking}
           />
         </BingoLayout>
       </BingoPageContainer>
