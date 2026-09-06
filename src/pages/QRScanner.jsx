@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from "react";
 import ReactQRScanner from "react-qr-scanner";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
+
+function extractQrToken(qrData) {
+  if (!qrData) return "";
+  const raw = String(qrData).trim();
+
+  try {
+    const token = new URL(raw).searchParams.get("token");
+    if (token) return token;
+  } catch {
+    // QR 값이 전체 URL이 아닌 경우
+  }
+
+  const query = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : raw;
+  const token = new URLSearchParams(query).get("token");
+  return token || raw;
+}
 
 const QRScanner = () => {
   const [result, setResult] = useState(null);
@@ -24,16 +40,15 @@ const QRScanner = () => {
 
   const sendQRDataToServer = async (qrData) => {
     try {
-      const response = await axiosInstance.post("/attendance/success", {
-        qrData,
+      const token = extractQrToken(qrData);
+      const response = await axiosInstance.post("/attendance/success", null, {
+        params: { token },
       });
 
       setMessage(`서버 응답: ${response.data.message}`);
-      console.log(message);
     } catch (error) {
       console.error("서버 요청 실패:", error);
-      setMessage("서버 요청 실패");
-      console.log(message);
+      setMessage(getApiErrorMessage(error, "서버 요청 실패"));
     }
   };
 
@@ -47,6 +62,7 @@ const QRScanner = () => {
         onScan={handleScan}
       />
       <div>{result && <p>Scanned result: {result}</p>}</div>
+      <div>{message && <p>{message}</p>}</div>
     </div>
   );
 };

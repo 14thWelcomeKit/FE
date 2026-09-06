@@ -149,23 +149,33 @@ export default function Header() {
           >
             INTRODUCE
           </HeaderText>
+          {isLoggedIn && (
+            <>
+              <HeaderText
+                active={location.pathname === "/attendance"}
+                onClick={() => handleNavigate("/attendance")}
+              >
+                ATTENDANCE
+              </HeaderText>
+              <HeaderText
+                active={location.pathname === "/bingo"}
+                onClick={() => handleNavigate("/bingo")}
+              >
+                BINGO
+              </HeaderText>
+              <HeaderText
+                active={location.pathname === "/board"}
+                onClick={() => handleNavigate("/board")}
+              >
+                BOARD
+              </HeaderText>
+            </>
+          )}
           <HeaderText
-            active={location.pathname === "/check"}
-            onClick={() => handleNavigate("/check")}
+            active={location.pathname === "/gallery"}
+            onClick={() => handleNavigate("/gallery")}
           >
-            ATTENDANCE
-          </HeaderText>
-          <HeaderText
-            active={location.pathname === "/bingo"}
-            onClick={() => handleNavigate("/bingo")}
-          >
-            BINGO
-          </HeaderText>
-          <HeaderText
-            active={location.pathname === "/board"}
-            onClick={() => handleNavigate("/board")}
-          >
-            BOARD
+            GALLERY
           </HeaderText>
         </MenuContainer>
         <LoginContainer>
@@ -179,12 +189,14 @@ export default function Header() {
               LOGIN
             </HeaderText>
           )}
-          <HeaderText
-            active={location.pathname === "/mypage"}
-            onClick={() => handleNavigate("/mypage")}
-          >
-            MYPAGE
-          </HeaderText>
+          {isLoggedIn && (
+            <HeaderText
+              active={location.pathname === "/mypage"}
+              onClick={() => handleNavigate("/mypage")}
+            >
+              MYPAGE
+            </HeaderText>
+          )}
         </LoginContainer>
         <AppMenu onClick={() => setIsModalOpen(true)} />
       </HeaderContainer>
@@ -203,18 +215,24 @@ export default function Header() {
             <HeaderText onClick={() => handleNavigate("/introduce")}>
               INTRODUCE
             </HeaderText>
-            <HeaderText onClick={() => handleNavigate("/mypage")}>
-              MY PAGE
-            </HeaderText>
-            <HeaderText onClick={() => handleNavigate("/check")}>
-              QR 출석체크
-            </HeaderText>
-
-            <HeaderText onClick={() => handleNavigate("/bingo")}>
-              Let's BINGO
-            </HeaderText>
-            <HeaderText onClick={() => handleNavigate("/board")}>
-              BOARD
+            {isLoggedIn && (
+              <>
+                <HeaderText onClick={() => handleNavigate("/mypage")}>
+                  MY PAGE
+                </HeaderText>
+                <HeaderText onClick={() => handleNavigate("/attendance")}>
+                  QR 출석체크
+                </HeaderText>
+                <HeaderText onClick={() => handleNavigate("/bingo")}>
+                  BINGO
+                </HeaderText>
+                <HeaderText onClick={() => handleNavigate("/board")}>
+                  BOARD
+                </HeaderText>
+              </>
+            )}
+            <HeaderText onClick={() => handleNavigate("/gallery")}>
+              GALLERY
             </HeaderText>
           </MenuModal>
         </ModalOverlay>

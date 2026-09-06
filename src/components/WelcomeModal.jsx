@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import breakpoints from "./breakpoints";
 import { IoCloseOutline } from "react-icons/io5";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -156,7 +156,7 @@ export default function WelcomeModal({ onClose, isDismiss = true }) {
         setWelcomeError("");
       }
     } catch (err) {
-      const errMessage = err.response?.data?.message || "웰컴 메시지를 불러오지 못했습니다.";
+      const errMessage = getApiErrorMessage(err, "웰컴 메시지를 불러오지 못했습니다.");
       setWelcomeError(errMessage);
       setWelcomeMessage("");
     }
@@ -167,7 +167,7 @@ export default function WelcomeModal({ onClose, isDismiss = true }) {
     try {
       await axiosInstance.post("/welcome/read");
     } catch (err) {
-      const errMessage = err.response?.data?.message;
+      const errMessage = getApiErrorMessage(err, "웰컴 메시지 읽음 처리에 실패했습니다.");
       console.error(errMessage);
     }
   };

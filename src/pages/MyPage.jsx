@@ -3,7 +3,7 @@ import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
-import WelcomeModal from "../components/WelcomeModal";
+// import WelcomeModal from "../components/WelcomeModal";
 import Image from "../images/logo.png";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../axiosInstance";
@@ -237,7 +237,7 @@ export default function MyPage() {
   const navigate = useNavigate();
   const [userdata, setUserdata] = useState({});
   const [profileImage, setProfileImage] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchMyData();
@@ -280,9 +280,9 @@ export default function MyPage() {
               <MypageButton onClick={() => navigate("/change-password")}>
                 비밀번호 변경
               </MypageButton>
-              <MypageButton onClick={() => setIsModalOpen(true)}>
+              {/* <MypageButton onClick={() => setIsModalOpen(true)}>
                 웰컴 메시지 확인
-              </MypageButton>
+              </MypageButton> */}
             </ButtonContainer>
           </MypageHeader>
           <MypageBody>
@@ -300,7 +300,7 @@ export default function MyPage() {
           </MypageBody>
         </MypageContainer>
       </PageContainer>
-      {isModalOpen && <WelcomeModal onClose={() => setIsModalOpen(false)} />}
+      {/* {isModalOpen && <WelcomeModal onClose={() => setIsModalOpen(false)} />} */}
     </>
   );
 }

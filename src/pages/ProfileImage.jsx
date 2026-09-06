@@ -5,7 +5,7 @@ import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
 import Image from "../images/logo.png";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../axiosInstance";
+import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
 
 const ProfileImageContainer = styled.div`
   display: flex;
@@ -188,7 +188,7 @@ export default function ProfileImage() {
       alert("프로필 이미지가 성공적으로 업로드되었습니다.");
       navigate("/mypage");
     } catch (error) {
-      setError("이미지 업로드에 실패했습니다. 다시 시도해주세요.");
+      setError(getApiErrorMessage(error, "이미지 업로드에 실패했습니다. 다시 시도해주세요."));
       console.error("Error fetching profile image:", error);
     }
   };
