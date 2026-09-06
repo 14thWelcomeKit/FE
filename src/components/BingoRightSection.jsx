@@ -1,49 +1,100 @@
+import { useState } from "react";
 import styled from "styled-components";
 import breakpoints from "./breakpoints";
 
 const formatRankingTimestamp = (value) => {
-  const date = value instanceof Date ? value : new Date(value);
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hour = String(date.getHours()).padStart(2, "0");
-  return `${month}월 ${day}일 ${hour}시 기준`;
+  if (!value) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).format(new Date(value)) + " 기준 (KST)";
 };
 
-export default function BingoRightSection({ ranking, myRanking, updatedAt }) {
+function RankerProfile({ member, index }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  const url = typeof member.profileImageUrl === "string" ? member.profileImageUrl.trim() : "";
+  return (
+    <ProfileCircle $variant={index % 2} aria-hidden="true">
+      {url && failedUrl !== url ? (
+        <ProfileImage src={url} alt="" onError={() => setFailedUrl(url)} />
+      ) : member.nickname.slice(0, 1)}
+    </ProfileCircle>
+  );
+}
+
+export default function BingoRightSection({ ranking, myRanking, updatedAt, isLoading, error, onRetry }) {
   return (
     <RankingPanel>
       <RankingHeader>
         <RankingTitle>Ranking</RankingTitle>
-        <RankingTimestamp>{formatRankingTimestamp(updatedAt)}</RankingTimestamp>
+        {updatedAt && <RankingTimestamp>{formatRankingTimestamp(updatedAt)}</RankingTimestamp>}
+        <RankingTimestamp>매일 자정(KST) 갱신</RankingTimestamp>
       </RankingHeader>
 
-      <RankingList>
-        {ranking.map((member, index) => (
-          <RankingRow key={member.id}>
-            <RankNumber $first={member.rank === 1}>{member.rank}</RankNumber>
-            <ProfileCircle $variant={index % 2} aria-hidden="true">
-              {member.name.slice(0, 1)}
-            </ProfileCircle>
-            <MemberInfo>
-              <MemberName>{member.name}</MemberName>
-              <CompletedCount>{member.completedCount}칸</CompletedCount>
-            </MemberInfo>
-          </RankingRow>
-        ))}
-      </RankingList>
+      {isLoading ? (
+        <RankingNotice role="status">랭킹을 불러오는 중입니다.</RankingNotice>
+      ) : error ? (
+        <RankingNotice role="alert">
+          <p>{error}</p>
+          <RetryButton type="button" onClick={onRetry}>다시 시도</RetryButton>
+        </RankingNotice>
+      ) : (
+        <>
+          {ranking.length ? (
+            <RankingList>
+              {ranking.map((member, index) => (
+                <RankingRow key={member.userId}>
+                  <RankNumber $first={member.rank === 1}>{member.rank}</RankNumber>
+                  <RankerProfile member={member} index={index} />
+                  <MemberInfo>
+                    <MemberName>{member.nickname}</MemberName>
+                    <Score>{member.score}점</Score>
+                  </MemberInfo>
+                </RankingRow>
+              ))}
+            </RankingList>
+          ) : <RankingNotice>아직 랭킹 데이터가 없습니다.</RankingNotice>}
 
-      <MyRankingCard>
-        <MyRankingLabel>내 순위</MyRankingLabel>
-        <MyRankingContent>
-          <MyRankingName>
-            {myRanking.rank}위&nbsp;&nbsp;{myRanking.name}
-          </MyRankingName>
-          <MyCompletedCount>완료 {myRanking.completedCount}칸</MyCompletedCount>
-        </MyRankingContent>
-      </MyRankingCard>
+          {myRanking && (
+            <MyRankingCard>
+              <MyRankingLabel>내 순위</MyRankingLabel>
+              <MyRankingContent>
+                <MyRankingName>
+                  {myRanking.rank === null ? "순위 없음" : `${myRanking.rank}위`}
+                  &nbsp;&nbsp;{myRanking.nickname}
+                </MyRankingName>
+                <MyScore>{myRanking.score}점</MyScore>
+              </MyRankingContent>
+            </MyRankingCard>
+          )}
+        </>
+      )}
     </RankingPanel>
   );
 }
+
+const RankingNotice = styled.div`
+  color: var(--white);
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+const RetryButton = styled.button`
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--orange);
+  color: var(--white);
+  font: inherit;
+  cursor: pointer;
+`;
+
+const ProfileImage = styled.img`
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+`;
 
 const RankingPanel = styled.aside`
   grid-area: ranking;
@@ -134,7 +185,7 @@ const MemberName = styled.strong`
   font-weight: 700;
 `;
 
-const CompletedCount = styled.span`
+const Score = styled.span`
   display: block;
   margin-top: 0.15rem;
   color: #9d9d9d;
@@ -173,7 +224,7 @@ const MyRankingName = styled.strong`
   font-weight: 700;
 `;
 
-const MyCompletedCount = styled.span`
+const MyScore = styled.span`
   color: #9d9d9d;
   font-family: Pretendard, sans-serif;
   font-size: 0.75rem;
