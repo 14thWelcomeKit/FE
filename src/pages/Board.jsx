@@ -365,7 +365,7 @@ const mapComment = (comment) => ({
   ...comment,
   id: comment.commentId,
   time: formatDate(comment.createdAt),
-  isAdmin: comment.isAdminComment,
+  isAdmin: comment.adminComment,
 });
 
 export default function Board() {
@@ -918,7 +918,7 @@ export default function Board() {
                                     ? "댓글 보기"
                                     : `댓글 ${post.comments.length}`}
                               </Button>
-                              {post.isOwner === true && (
+                              {post.owner === true && (
                                 <Button
                                   onClick={() => deletePost(post.id)}
                                   disabled={
@@ -998,7 +998,7 @@ export default function Board() {
                                   >
                                     <Nickname>
                                       ↳ 익명
-                                      {comment.isAdminComment === true && (
+                                      {comment.adminComment === true && (
                                         <AdminBadge>운영진</AdminBadge>
                                       )}
                                     </Nickname>
@@ -1027,7 +1027,7 @@ export default function Board() {
                                         justifyContent: "flex-start",
                                       }}
                                     >
-                                      {comment.isOwner === true && (
+                                      {comment.owner === true && (
                                         <Button
                                           disabled={
                                             requests[
