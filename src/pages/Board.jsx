@@ -598,17 +598,37 @@ export default function Board() {
   const deletePost = async (id) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
     const key = `deletePost:${id}`;
+    // 마지막 페이지의 마지막 글을 지우면 이전 유효 페이지로, 아니면 현재 페이지를 재조회합니다.
+    const reloadList = () => {
+      const currentPage = pageInfo?.page ?? page;
+      if (posts.length === 1 && currentPage > 0) {
+        setPage(currentPage - 1);
+      } else {
+        setListAttempt((prev) => prev + 1);
+      }
+    };
     setRequest(key, true);
     try {
+      // 성공 응답의 data: null은 본문을 읽지 않으므로 그대로 정상 처리됩니다.
       await axiosInstance.delete(`/qna/${id}`);
-      setPosts((prev) => prev.filter((p) => p.id !== id));
       setRequest(key, false);
+      setDetailNotice("");
+      reloadList();
     } catch (e) {
-      setRequest(
-        key,
-        false,
-        getApiErrorMessage(e, "게시글 삭제에 실패했습니다."),
-      );
+      const status = e.response?.status;
+      if (status === 404) {
+        setDetailNotice("이미 삭제되었거나 존재하지 않는 문의글입니다.");
+        setRequest(key, false);
+        reloadList();
+      } else {
+        setRequest(
+          key,
+          false,
+          status === 403
+            ? "이 문의글을 삭제할 권한이 없습니다."
+            : getApiErrorMessage(e, "게시글 삭제에 실패했습니다."),
+        );
+      }
     }
   };
 
@@ -691,24 +711,26 @@ export default function Board() {
     const key = `deleteComment:${commentId}`;
     setRequest(key, true);
     try {
+      // 삭제 응답 본문은 읽지 않고, 성공하면 댓글 목록을 재조회해 내용과 개수를 맞춥니다.
       await axiosInstance.delete(`/qna/comments/${commentId}`);
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                comments: p.comments?.filter((c) => c.id !== commentId) ?? null,
-              }
-            : p,
-        ),
-      );
       setRequest(key, false);
+      // fetchComments가 원문 삭제·접근 불가(403/404)를 확인하면 상세·목록까지 정리합니다.
+      await fetchComments(postId);
     } catch (e) {
-      setRequest(
-        key,
-        false,
-        getApiErrorMessage(e, "댓글 삭제에 실패했습니다."),
-      );
+      const status = e.response?.status;
+      if (status === 404) {
+        setDetailNotice("이미 삭제되었거나 존재하지 않는 댓글입니다.");
+        setRequest(key, false);
+        await fetchComments(postId);
+      } else {
+        setRequest(
+          key,
+          false,
+          status === 403
+            ? "이 댓글을 삭제할 권한이 없습니다."
+            : getApiErrorMessage(e, "댓글 삭제에 실패했습니다."),
+        );
+      }
     }
   };
 
