@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
@@ -356,6 +356,7 @@ const mapPost = (post) => ({
   time: formatDate(post.createdAt),
   comments: null,
   expanded: false,
+  detailLoaded: false,
   showCommentInput: false,
   commentText: "",
 });
@@ -368,7 +369,9 @@ const mapComment = (comment) => ({
 });
 
 export default function Board() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, token } = useAuth();
+  const detailControllers = useRef(new Map());
+  const [detailNotice, setDetailNotice] = useState("");
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(0);
   const [pageInfo, setPageInfo] = useState(null);
@@ -382,22 +385,25 @@ export default function Board() {
   const loading = requests.list?.loading ?? true;
   const submitting = requests.createPost?.loading;
 
-  const fetchComments = async (qnaId) => {
+  const fetchComments = async (qnaId, signal) => {
     const key = `comments:${qnaId}`;
     setRequest(key, true);
     try {
-      const res = await axiosInstance.get(`/qna/comments/${qnaId}`);
+      const res = await axiosInstance.get(`/qna/comments/${qnaId}`, { signal });
+      if (signal.aborted) return;
       const data = res.data.data;
+      setPosts((prev) => prev.map((post) => post.id === qnaId
+        ? { ...post, comments: data.map(mapComment) } : post));
       setRequest(key, false);
-      return data.map(mapComment);
     } catch (e) {
+      if (signal.aborted) return;
       setRequest(key, false, getApiErrorMessage(e, "댓글을 불러오지 못했습니다."));
-      return [];
     }
   };
 
   useEffect(() => {
     const controller = new AbortController();
+    const pendingDetails = detailControllers.current;
     setPosts([]);
     setPageInfo(null);
     setRequests((prev) => ({
@@ -431,13 +437,60 @@ export default function Board() {
       }
     };
     fetchPosts();
-    return () => controller.abort();
-  }, [page, listAttempt]);
+    return () => {
+      controller.abort();
+      pendingDetails.forEach((pending) => pending.abort());
+      pendingDetails.clear();
+    };
+  }, [page, listAttempt, token]);
 
-  const togglePost = (id) =>
+  const fetchDetail = async (id) => {
+    if (detailControllers.current.has(id)) return;
+    const controller = new AbortController();
+    detailControllers.current.set(id, controller);
+    const key = `detail:${id}`;
+    setRequest(key, true);
+    try {
+      const res = await axiosInstance.get(`/qna/${id}`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const detail = res.data.data;
+      setPosts((prev) => prev.map((post) => post.id === id ? {
+        ...post,
+        ...detail,
+        id: detail.qnaId,
+        time: formatDate(detail.createdAt),
+        detailLoaded: true,
+      } : post));
+      setRequest(key, false);
+      await fetchComments(id, controller.signal);
+    } catch (e) {
+      if (controller.signal.aborted) return;
+      const status = e.response?.status;
+      if (status === 403 || status === 404) {
+        setDetailNotice(status === 403
+          ? "이 문의글에 접근할 권한이 없습니다."
+          : "존재하지 않거나 삭제된 문의글입니다.");
+        setPosts((prev) => prev.filter((post) => post.id !== id));
+        setListAttempt((prev) => prev + 1);
+      } else {
+        setRequest(key, false, getApiErrorMessage(e, "본문을 불러오지 못했습니다."));
+      }
+    } finally {
+      if (detailControllers.current.get(id) === controller) {
+        detailControllers.current.delete(id);
+      }
+    }
+  };
+
+  const togglePost = (id) => {
+    const selected = posts.find((post) => post.id === id);
     setPosts((prev) => prev.map((post) =>
       post.id === id ? { ...post, expanded: !post.expanded } : post,
     ));
+    if (selected && !selected.expanded && !selected.detailLoaded) {
+      fetchDetail(id);
+    }
+  };
 
   const addPost = async () => {
     if (!text.trim()) return;
@@ -596,6 +649,7 @@ export default function Board() {
 
             <div style={{ marginTop: "0.8rem" }}>
               <Title>{isAdmin ? "전체 문의" : "내 문의"}</Title>
+              {detailNotice && <ErrorMessage role="alert">{detailNotice}</ErrorMessage>}
               {loading ? (
                 <LoadingText>게시글을 불러오는 중...</LoadingText>
               ) : requests.list?.error ? (
@@ -622,9 +676,18 @@ export default function Board() {
                     </Button>
                     {post.expanded && (
                       <div id={`qna-detail-${post.id}`}>
-                        {post.content === undefined ? (
-                          <LoadingText>본문을 아직 불러오지 않았습니다.</LoadingText>
-                        ) : <Content>{post.content}</Content>}
+                        {requests[`detail:${post.id}`]?.loading && (
+                          <LoadingText>본문을 불러오는 중...</LoadingText>
+                        )}
+                        {requests[`detail:${post.id}`]?.error && (
+                          <>
+                            <ErrorMessage>{requests[`detail:${post.id}`].error}</ErrorMessage>
+                            <Button onClick={() => fetchDetail(post.id)}>다시 시도</Button>
+                          </>
+                        )}
+                        {post.detailLoaded && (
+                          <>
+                        <Content>{post.content}</Content>
                     {requests[`deletePost:${post.id}`]?.loading && (
                       <LoadingText>게시글을 삭제하는 중...</LoadingText>
                     )}
@@ -656,15 +719,16 @@ export default function Board() {
                           ? "댓글 조회 실패"
                           : post.comments === null ? "댓글 보기" : `댓글 ${post.comments.length}`}
                       </Button>
-                      {/**<Button
+                      {post.isOwner === true && <Button
                         onClick={() => deletePost(post.id)}
+                        disabled={requests[`deletePost:${post.id}`]?.loading}
                         style={{
                           background: "rgba(255,60,60,0.15)",
                           color: "#ff6666",
                         }}
                       >
                         삭제
-                      </Button> */}
+                      </Button>}
                     </ButtonRow>
 
                     {post.showCommentInput && (
@@ -747,6 +811,8 @@ export default function Board() {
                         ))}
                       </CommentArea>
                     )}
+                          </>
+                        )}
                       </div>
                     )}
                   </PostBox>
