@@ -378,6 +378,10 @@ export default function Board() {
   const [pageInfo, setPageInfo] = useState(null);
   const [listAttempt, setListAttempt] = useState(0);
   const [text, setText] = useState("");
+  const [title, setTitle] = useState("");
+  const [createdPost, setCreatedPost] = useState(null);
+  const createPostPending = useRef(false);
+  const refreshAfterCreate = useRef(false);
   // 작업 종류와 대상 ID로 조회/작성/삭제 상태를 독립적으로 관리합니다.
   // 상세 조회 연결 시에도 detail:{qnaId} 키를 사용합니다.
   const [requests, setRequests] = useState({});
@@ -440,6 +444,7 @@ export default function Board() {
         const { qnas, pageInfo: nextPageInfo } = res.data.data;
         setPosts(qnas.map(mapPost));
         setPageInfo(nextPageInfo);
+        refreshAfterCreate.current = false;
         setRequests((prev) => ({
           ...prev,
           list: { loading: false, error: "" },
@@ -450,7 +455,9 @@ export default function Board() {
           ...prev,
           list: {
             loading: false,
-            error: getApiErrorMessage(e, "게시글을 불러오지 못했습니다."),
+            error: refreshAfterCreate.current
+              ? "등록 완료, 목록 갱신 실패. 다시 시도하면 목록만 불러옵니다."
+              : getApiErrorMessage(e, "게시글을 불러오지 못했습니다."),
           },
         }));
       }
@@ -514,20 +521,34 @@ export default function Board() {
   };
 
   const addPost = async () => {
-    if (!text.trim()) return;
+    if (createPostPending.current) return;
+    if (!title.trim() || !text.trim()) {
+      setRequest("createPost", false, "제목과 내용을 모두 입력해주세요.");
+      return;
+    }
+    if (title.length > 100 || text.length > 2000) {
+      setRequest("createPost", false, "제목은 100자, 내용은 2,000자 이내로 입력해주세요.");
+      return;
+    }
+    createPostPending.current = true;
+    setCreatedPost(null);
     setRequest("createPost", true);
     try {
-      const params = new URLSearchParams({
-        title: text.slice(0, 50),
+      const res = await axiosInstance.post("/qna", {
+        title,
         content: text,
       });
-      const res = await axiosInstance.post(`/qna?${params.toString()}`);
-      const converted = mapPost(res.data.data);
-      setPosts((prev) => [converted, ...prev]);
+      setCreatedPost(res.data.data);
+      setTitle("");
       setText("");
       setRequest("createPost", false);
+      refreshAfterCreate.current = true;
+      setPage(0);
+      setListAttempt((prev) => prev + 1);
     } catch (e) {
       setRequest("createPost", false, getApiErrorMessage(e, "게시글 작성에 실패했습니다."));
+    } finally {
+      createPostPending.current = false;
     }
   };
 
@@ -648,10 +669,29 @@ export default function Board() {
               style={{ marginTop: 0, marginBottom: "2.8rem", gap: "0.8rem" }}
             >
               <TextArea
+                as="input"
+                type="text"
+                aria-label="문의 제목"
+                placeholder="문의 제목을 입력하세요"
+                value={title}
+                maxLength={100}
+                disabled={submitting}
+                style={{ minHeight: "unset", height: "3.5rem", padding: "0.6rem 0.75rem" }}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <Time>{title.length} / 100자</Time>
+              <TextArea
+                aria-label="문의 내용"
                 placeholder="문의 내용을 입력하세요..."
                 value={text}
+                maxLength={2000}
+                disabled={submitting}
                 onChange={(e) => setText(e.target.value)}
               />
+              <Time>{text.length} / 2,000자</Time>
+              {createdPost && (
+                <LoadingText role="status">문의가 등록되었습니다.</LoadingText>
+              )}
               {requests.createPost?.error && (
                 <ErrorMessage>{requests.createPost.error}</ErrorMessage>
               )}
@@ -660,7 +700,13 @@ export default function Board() {
                   {submitting ? "등록 중..." : "등록"}
                 </Button>
                 <Button
-                  onClick={() => setText("")}
+                  disabled={submitting}
+                  onClick={() => {
+                    setTitle("");
+                    setText("");
+                    setCreatedPost(null);
+                    setRequest("createPost", false);
+                  }}
                   style={{ background: "rgba(255,255,255,0.1)", color: "#ddd" }}
                 >
                   취소
