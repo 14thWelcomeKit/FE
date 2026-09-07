@@ -174,6 +174,15 @@ function formatDate(value) {
   return `${match[1]}. ${Number(match[2])}. ${Number(match[3])}.`;
 }
 
+function isToday(dateString) {
+  if (!dateString) return false;
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return dateString === `${year}-${month}-${day}`;
+}
+
 export default function Attendance() {
   const { userType, isAdmin, isUserInfoLoading } = useAuth();
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(true);
@@ -183,7 +192,7 @@ export default function Attendance() {
   const [sessionDetails, setSessionDetails] = useState([]);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
   const [sessionDate, setSessionDate] = useState("");
-  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [todayMyAttendance, setTodayMyAttendance] = useState(null);
   const [myAttendance, setMyAttendance] = useState([]);
   const [myAttendancePagination, setMyAttendancePagination] = useState({
     number: 0,
@@ -211,30 +220,6 @@ export default function Attendance() {
     setMessageType(type);
   }, []);
 
-  const fetchTodayAttendance = useCallback(async () => {
-    try {
-      const response = await axiosInstance.get(
-        "/attendance/today/attendance"
-      );
-      setTodayAttendance(
-        Array.isArray(response.data) ? response.data : []
-      );
-    } catch (error) {
-      const isSessionNotFound =
-        error.response?.status === 404 &&
-        error.response?.data?.errorCode === "SESSION_NOT_FOUND";
-
-      if (isSessionNotFound) {
-        setTodayAttendance([]);
-        return;
-      }
-
-      showMessage(
-        getApiErrorMessage(error, "오늘 출석 정보를 불러오지 못했습니다.")
-      );
-    }
-  }, [showMessage]);
-
   const fetchMyAttendance = useCallback(async (page = 0) => {
     const requestId = ++myAttendanceRequestIdRef.current;
     try {
@@ -244,7 +229,16 @@ export default function Attendance() {
       );
       if (requestId !== myAttendanceRequestIdRef.current) return;
       const data = response.data;
-      setMyAttendance(Array.isArray(data?.content) ? data.content : []);
+      const content = Array.isArray(data?.content) ? data.content : [];
+      setMyAttendance(content);
+      if (page === 0) {
+        const latestAttendance = content[0];
+        setTodayMyAttendance(
+          latestAttendance && isToday(latestAttendance.date)
+            ? latestAttendance
+            : null
+        );
+      }
       setMyAttendancePagination({
         number: Number.isInteger(data?.number) ? data.number : page,
         totalPages: Number.isInteger(data?.totalPages) ? data.totalPages : 0,
@@ -284,10 +278,7 @@ export default function Attendance() {
             Array.isArray(sessionsResponse.data) ? sessionsResponse.data : []
           );
         } else if (userType === "BABY_LION") {
-          await Promise.all([
-            fetchTodayAttendance(),
-            fetchMyAttendance(0),
-          ]);
+          await fetchMyAttendance(0);
           if (!isMounted) return;
         } else {
           showMessage("사용자 역할을 확인할 수 없습니다.");
@@ -308,7 +299,7 @@ export default function Attendance() {
     return () => {
       isMounted = false;
     };
-  }, [fetchMyAttendance, fetchTodayAttendance, isAdmin, isUserInfoLoading, showMessage, userType]);
+  }, [fetchMyAttendance, isAdmin, isUserInfoLoading, showMessage, userType]);
 
   useEffect(() => {
     return () => {
@@ -464,10 +455,7 @@ export default function Attendance() {
         response.data?.message || "출석 처리가 완료되었습니다.",
         "success"
       );
-      await Promise.all([
-        fetchTodayAttendance(),
-        fetchMyAttendance(0),
-      ]);
+      await fetchMyAttendance(0);
     } catch (error) {
       showMessage(getApiErrorMessage(error, "출석 처리에 실패했습니다."));
       isScanSubmitting.current = false;
@@ -567,7 +555,7 @@ export default function Attendance() {
 
           {!isAttendanceLoading && isBabyLion && (
             <AttendanceMember
-              todayAttendance={todayAttendance}
+              todayMyAttendance={todayMyAttendance}
               myAttendance={myAttendance}
               pagination={myAttendancePagination}
               onOpenScanModal={openScanModal}
