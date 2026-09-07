@@ -372,6 +372,8 @@ export default function Board() {
   const { isAdmin, token } = useAuth();
   const detailControllers = useRef(new Map());
   const commentControllers = useRef(new Map());
+  const commentSubmissions = useRef(new Set());
+  const pageGeneration = useRef(0);
   const [detailNotice, setDetailNotice] = useState("");
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(0);
@@ -390,8 +392,11 @@ export default function Board() {
   const loading = requests.list?.loading ?? true;
   const submitting = requests.createPost?.loading;
 
-  const fetchComments = async (qnaId) => {
-    if (commentControllers.current.has(qnaId)) return;
+  const fetchComments = async (qnaId, afterCreate = false) => {
+    if (commentControllers.current.has(qnaId)) {
+      if (!afterCreate) return;
+      commentControllers.current.get(qnaId).abort();
+    }
     const controller = new AbortController();
     const { signal } = controller;
     commentControllers.current.set(qnaId, controller);
@@ -401,20 +406,33 @@ export default function Board() {
       const res = await axiosInstance.get(`/qna/comments/${qnaId}`, { signal });
       if (signal.aborted) return;
       const data = res.data.data;
-      setPosts((prev) => prev.map((post) => post.id === qnaId
-        ? { ...post, comments: data.map(mapComment) } : post));
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === qnaId
+            ? { ...post, comments: data.map(mapComment) }
+            : post,
+        ),
+      );
       setRequest(key, false);
     } catch (e) {
       if (signal.aborted) return;
       const status = e.response?.status;
       if (status === 403 || status === 404) {
-        setDetailNotice(status === 403
-          ? "이 문의글의 댓글에 접근할 권한이 없습니다."
-          : "존재하지 않거나 삭제된 문의글입니다.");
+        setDetailNotice(
+          status === 403
+            ? `${afterCreate ? "댓글 등록은 완료되었습니다. " : ""}이 문의글의 댓글에 접근할 권한이 없습니다.`
+            : `${afterCreate ? "댓글 등록은 완료되었습니다. " : ""}존재하지 않거나 삭제된 문의글입니다.`,
+        );
         setPosts((prev) => prev.filter((post) => post.id !== qnaId));
         setListAttempt((prev) => prev + 1);
       } else {
-        setRequest(key, false, getApiErrorMessage(e, "댓글을 불러오지 못했습니다."));
+        setRequest(
+          key,
+          false,
+          afterCreate
+            ? "댓글 등록 완료, 목록 갱신 실패. 다시 불러오면 댓글 목록만 조회합니다."
+            : getApiErrorMessage(e, "댓글을 불러오지 못했습니다."),
+        );
       }
     } finally {
       if (commentControllers.current.get(qnaId) === controller) {
@@ -464,6 +482,7 @@ export default function Board() {
     };
     fetchPosts();
     return () => {
+      pageGeneration.current += 1;
       controller.abort();
       pendingDetails.forEach((pending) => pending.abort());
       pendingDetails.clear();
@@ -479,29 +498,43 @@ export default function Board() {
     const key = `detail:${id}`;
     setRequest(key, true);
     try {
-      const res = await axiosInstance.get(`/qna/${id}`, { signal: controller.signal });
+      const res = await axiosInstance.get(`/qna/${id}`, {
+        signal: controller.signal,
+      });
       if (controller.signal.aborted) return;
       const detail = res.data.data;
-      setPosts((prev) => prev.map((post) => post.id === id ? {
-        ...post,
-        ...detail,
-        id: detail.qnaId,
-        time: formatDate(detail.createdAt),
-        detailLoaded: true,
-      } : post));
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === id
+            ? {
+                ...post,
+                ...detail,
+                id: detail.qnaId,
+                time: formatDate(detail.createdAt),
+                detailLoaded: true,
+              }
+            : post,
+        ),
+      );
       setRequest(key, false);
       await fetchComments(id);
     } catch (e) {
       if (controller.signal.aborted) return;
       const status = e.response?.status;
       if (status === 403 || status === 404) {
-        setDetailNotice(status === 403
-          ? "이 문의글에 접근할 권한이 없습니다."
-          : "존재하지 않거나 삭제된 문의글입니다.");
+        setDetailNotice(
+          status === 403
+            ? "이 문의글에 접근할 권한이 없습니다."
+            : "존재하지 않거나 삭제된 문의글입니다.",
+        );
         setPosts((prev) => prev.filter((post) => post.id !== id));
         setListAttempt((prev) => prev + 1);
       } else {
-        setRequest(key, false, getApiErrorMessage(e, "본문을 불러오지 못했습니다."));
+        setRequest(
+          key,
+          false,
+          getApiErrorMessage(e, "본문을 불러오지 못했습니다."),
+        );
       }
     } finally {
       if (detailControllers.current.get(id) === controller) {
@@ -512,9 +545,11 @@ export default function Board() {
 
   const togglePost = (id) => {
     const selected = posts.find((post) => post.id === id);
-    setPosts((prev) => prev.map((post) =>
-      post.id === id ? { ...post, expanded: !post.expanded } : post,
-    ));
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === id ? { ...post, expanded: !post.expanded } : post,
+      ),
+    );
     if (selected && !selected.expanded && !selected.detailLoaded) {
       fetchDetail(id);
     }
@@ -527,7 +562,11 @@ export default function Board() {
       return;
     }
     if (title.length > 100 || text.length > 2000) {
-      setRequest("createPost", false, "제목은 100자, 내용은 2,000자 이내로 입력해주세요.");
+      setRequest(
+        "createPost",
+        false,
+        "제목은 100자, 내용은 2,000자 이내로 입력해주세요.",
+      );
       return;
     }
     createPostPending.current = true;
@@ -546,7 +585,11 @@ export default function Board() {
       setPage(0);
       setListAttempt((prev) => prev + 1);
     } catch (e) {
-      setRequest("createPost", false, getApiErrorMessage(e, "게시글 작성에 실패했습니다."));
+      setRequest(
+        "createPost",
+        false,
+        getApiErrorMessage(e, "게시글 작성에 실패했습니다."),
+      );
     } finally {
       createPostPending.current = false;
     }
@@ -561,7 +604,11 @@ export default function Board() {
       setPosts((prev) => prev.filter((p) => p.id !== id));
       setRequest(key, false);
     } catch (e) {
-      setRequest(key, false, getApiErrorMessage(e, "게시글 삭제에 실패했습니다."));
+      setRequest(
+        key,
+        false,
+        getApiErrorMessage(e, "게시글 삭제에 실패했습니다."),
+      );
     }
   };
 
@@ -578,34 +625,64 @@ export default function Board() {
     );
 
   const addComment = async (postId) => {
+    if (commentSubmissions.current.has(postId)) return;
     const post = posts.find((p) => p.id === postId);
-    if (!post?.commentText.trim()) return;
+    if (!post) return;
     const key = `createComment:${postId}`;
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, lastCreatedComment: null } : p,
+      ),
+    );
+    if (!post.commentText.trim()) {
+      setRequest(key, false, "댓글 내용을 입력해주세요.");
+      return;
+    }
+    if (post.commentText.length > 1000) {
+      setRequest(key, false, "댓글은 1,000자 이내로 입력해주세요.");
+      return;
+    }
+    const generation = pageGeneration.current;
+    commentSubmissions.current.add(postId);
     setRequest(key, true);
     try {
-      const params = new URLSearchParams({
+      const res = await axiosInstance.post("/qna/comments", {
         qnaId: postId,
         content: post.commentText,
       });
-      const res = await axiosInstance.post(
-        `/qna/comments?${params.toString()}`,
-      );
+      if (generation !== pageGeneration.current) return;
       const converted = mapComment(res.data.data);
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
             ? {
                 ...p,
-                comments: [...(p.comments ?? []), converted],
+                lastCreatedComment: converted,
                 commentText: "",
-                showCommentInput: false,
               }
             : p,
         ),
       );
+      await fetchComments(postId, true);
+      if (generation !== pageGeneration.current) return;
       setRequest(key, false);
     } catch (e) {
-      setRequest(key, false, getApiErrorMessage(e, "댓글 작성에 실패했습니다."));
+      if (generation !== pageGeneration.current) return;
+      if (e.response?.status === 404) {
+        setDetailNotice("문의글이 존재하지 않아 댓글을 등록하지 못했습니다.");
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+        setListAttempt((prev) => prev + 1);
+      } else {
+        setRequest(
+          key,
+          false,
+          e.response?.status === 403
+            ? "이 문의글에 댓글을 작성할 권한이 없습니다."
+            : getApiErrorMessage(e, "댓글 작성에 실패했습니다."),
+        );
+      }
+    } finally {
+      commentSubmissions.current.delete(postId);
     }
   };
 
@@ -618,13 +695,20 @@ export default function Board() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, comments: p.comments?.filter((c) => c.id !== commentId) ?? null }
+            ? {
+                ...p,
+                comments: p.comments?.filter((c) => c.id !== commentId) ?? null,
+              }
             : p,
         ),
       );
       setRequest(key, false);
     } catch (e) {
-      setRequest(key, false, getApiErrorMessage(e, "댓글 삭제에 실패했습니다."));
+      setRequest(
+        key,
+        false,
+        getApiErrorMessage(e, "댓글 삭제에 실패했습니다."),
+      );
     }
   };
 
@@ -676,7 +760,11 @@ export default function Board() {
                 value={title}
                 maxLength={100}
                 disabled={submitting}
-                style={{ minHeight: "unset", height: "3.5rem", padding: "0.6rem 0.75rem" }}
+                style={{
+                  minHeight: "unset",
+                  height: "3.5rem",
+                  padding: "0.6rem 0.75rem",
+                }}
                 onChange={(e) => setTitle(e.target.value)}
               />
               <Time>{title.length} / 100자</Time>
@@ -716,7 +804,9 @@ export default function Board() {
 
             <div style={{ marginTop: "0.8rem" }}>
               <Title>{isAdmin ? "전체 문의" : "내 문의"}</Title>
-              {detailNotice && <ErrorMessage role="alert">{detailNotice}</ErrorMessage>}
+              {detailNotice && (
+                <ErrorMessage role="alert">{detailNotice}</ErrorMessage>
+              )}
               {loading ? (
                 <LoadingText>게시글을 불러오는 중...</LoadingText>
               ) : requests.list?.error ? (
@@ -748,149 +838,200 @@ export default function Board() {
                         )}
                         {requests[`detail:${post.id}`]?.error && (
                           <>
-                            <ErrorMessage>{requests[`detail:${post.id}`].error}</ErrorMessage>
-                            <Button onClick={() => fetchDetail(post.id)}>다시 시도</Button>
+                            <ErrorMessage>
+                              {requests[`detail:${post.id}`].error}
+                            </ErrorMessage>
+                            <Button onClick={() => fetchDetail(post.id)}>
+                              다시 시도
+                            </Button>
                           </>
                         )}
                         {post.detailLoaded && (
                           <>
-                        <Content>{post.content}</Content>
-                    {requests[`deletePost:${post.id}`]?.loading && (
-                      <LoadingText>게시글을 삭제하는 중...</LoadingText>
-                    )}
-                    {requests[`deletePost:${post.id}`]?.error && (
-                      <ErrorMessage>{requests[`deletePost:${post.id}`].error}</ErrorMessage>
-                    )}
-                    {requests[`comments:${post.id}`]?.loading && (
-                      <LoadingText>댓글을 불러오는 중...</LoadingText>
-                    )}
-                    {requests[`comments:${post.id}`]?.error && (
-                      <>
-                        <ErrorMessage role="alert">{requests[`comments:${post.id}`].error}</ErrorMessage>
-                        <Button onClick={() => fetchComments(post.id)}>
-                          댓글 다시 불러오기
-                        </Button>
-                      </>
-                    )}
-                    {!requests[`comments:${post.id}`]?.loading &&
-                      !requests[`comments:${post.id}`]?.error && post.comments?.length === 0 && (
-                      <LoadingText>아직 댓글이 없습니다.</LoadingText>
-                    )}
-
-                    <ButtonRow
-                      style={{
-                        marginTop: "1rem",
-                        justifyContent: "flex-start",
-                      }}
-                    >
-                      <Button
-                        onClick={() => toggleCommentInput(post.id)}
-                        style={{
-                          minWidth: "unset",
-                          width: "auto",
-                          padding: "0 1.3rem",
-                        }}
-                      >
-                        {requests[`comments:${post.id}`]?.error
-                          ? "댓글 조회 실패"
-                          : post.comments === null ? "댓글 보기" : `댓글 ${post.comments.length}`}
-                      </Button>
-                      {post.isOwner === true && <Button
-                        onClick={() => deletePost(post.id)}
-                        disabled={requests[`deletePost:${post.id}`]?.loading}
-                        style={{
-                          background: "rgba(255,60,60,0.15)",
-                          color: "#ff6666",
-                        }}
-                      >
-                        삭제
-                      </Button>}
-                    </ButtonRow>
-
-                    {post.showCommentInput && (
-                      <InputArea style={{ marginTop: "1.2rem" }}>
-                        <TextArea
-                          placeholder="댓글을 입력하세요..."
-                          value={post.commentText}
-                          onChange={(e) =>
-                            handleCommentChange(post.id, e.target.value)
-                          }
-                        />
-                        <ButtonRow>
-                          <Button
-                            onClick={() => addComment(post.id)}
-                            disabled={requests[`createComment:${post.id}`]?.loading}
-                          >
-                            {requests[`createComment:${post.id}`]?.loading ? "등록 중..." : "등록"}
-                          </Button>
-                          <Button
-                            onClick={() => toggleCommentInput(post.id)}
-                            style={{
-                              background: "rgba(255,255,255,0.1)",
-                              color: "#ddd",
-                            }}
-                          >
-                            취소
-                          </Button>
-                        </ButtonRow>
-                        {requests[`createComment:${post.id}`]?.error && (
-                          <ErrorMessage>{requests[`createComment:${post.id}`].error}</ErrorMessage>
-                        )}
-                      </InputArea>
-                    )}
-
-                    {post.comments?.length > 0 && (
-                      <CommentArea>
-                        {post.comments.map((comment) => (
-                          <PostBox
-                            key={comment.id}
-                            style={{
-                              padding: "1.2rem 0 0.8rem",
-                              borderBottom: "none",
-                            }}
-                          >
-                            <Nickname>
-                              ↳ 익명
-                              {comment.isAdminComment === true && (
-                                <AdminBadge>운영진</AdminBadge>
+                            <Content>{post.content}</Content>
+                            {requests[`deletePost:${post.id}`]?.loading && (
+                              <LoadingText>게시글을 삭제하는 중...</LoadingText>
+                            )}
+                            {requests[`deletePost:${post.id}`]?.error && (
+                              <ErrorMessage>
+                                {requests[`deletePost:${post.id}`].error}
+                              </ErrorMessage>
+                            )}
+                            {requests[`comments:${post.id}`]?.loading && (
+                              <LoadingText>댓글을 불러오는 중...</LoadingText>
+                            )}
+                            {requests[`comments:${post.id}`]?.error && (
+                              <>
+                                <ErrorMessage role="alert">
+                                  {requests[`comments:${post.id}`].error}
+                                </ErrorMessage>
+                                <Button onClick={() => fetchComments(post.id)}>
+                                  댓글 다시 불러오기
+                                </Button>
+                              </>
+                            )}
+                            {!requests[`comments:${post.id}`]?.loading &&
+                              !requests[`comments:${post.id}`]?.error &&
+                              post.comments?.length === 0 && (
+                                <LoadingText>아직 댓글이 없습니다.</LoadingText>
                               )}
-                            </Nickname>
-                            <Content>{comment.content}</Content>
-                            <Time>{comment.time}</Time>
-                            {requests[`deleteComment:${comment.id}`]?.loading && (
-                              <LoadingText>댓글을 삭제하는 중...</LoadingText>
-                            )}
-                            {requests[`deleteComment:${comment.id}`]?.error && (
-                              <ErrorMessage>{requests[`deleteComment:${comment.id}`].error}</ErrorMessage>
-                            )}
 
                             <ButtonRow
                               style={{
-                                marginTop: "0.6rem",
+                                marginTop: "1rem",
                                 justifyContent: "flex-start",
                               }}
                             >
-                              {comment.isOwner === true && <Button
-                                disabled={requests[`deleteComment:${comment.id}`]?.loading}
-                                onClick={() =>
-                                  deleteComment(post.id, comment.id)
-                                }
+                              <Button
+                                onClick={() => toggleCommentInput(post.id)}
                                 style={{
                                   minWidth: "unset",
                                   width: "auto",
-                                  padding: "0 1rem",
-                                  fontSize: "0.9rem",
-                                  background: "rgba(255,60,60,0.12)",
-                                  color: "#ff7777",
+                                  padding: "0 1.3rem",
                                 }}
                               >
-                                삭제
-                              </Button>}
+                                {requests[`comments:${post.id}`]?.error
+                                  ? "댓글 조회 실패"
+                                  : post.comments === null
+                                    ? "댓글 보기"
+                                    : `댓글 ${post.comments.length}`}
+                              </Button>
+                              {post.isOwner === true && (
+                                <Button
+                                  onClick={() => deletePost(post.id)}
+                                  disabled={
+                                    requests[`deletePost:${post.id}`]?.loading
+                                  }
+                                  style={{
+                                    background: "rgba(255,60,60,0.15)",
+                                    color: "#ff6666",
+                                  }}
+                                >
+                                  삭제
+                                </Button>
+                              )}
                             </ButtonRow>
-                          </PostBox>
-                        ))}
-                      </CommentArea>
-                    )}
+
+                            {post.showCommentInput && (
+                              <InputArea style={{ marginTop: "1.2rem" }}>
+                                {post.lastCreatedComment && (
+                                  <LoadingText role="status">
+                                    댓글이 등록되었습니다.
+                                  </LoadingText>
+                                )}
+                                <TextArea
+                                  placeholder="댓글을 입력하세요..."
+                                  value={post.commentText}
+                                  maxLength={1000}
+                                  disabled={
+                                    requests[`createComment:${post.id}`]
+                                      ?.loading
+                                  }
+                                  onChange={(e) =>
+                                    handleCommentChange(post.id, e.target.value)
+                                  }
+                                />
+                                <Time>{post.commentText.length} / 1,000자</Time>
+                                <ButtonRow>
+                                  <Button
+                                    onClick={() => addComment(post.id)}
+                                    disabled={
+                                      requests[`createComment:${post.id}`]
+                                        ?.loading
+                                    }
+                                  >
+                                    {requests[`createComment:${post.id}`]
+                                      ?.loading
+                                      ? "등록 중..."
+                                      : "등록"}
+                                  </Button>
+                                  <Button
+                                    onClick={() => toggleCommentInput(post.id)}
+                                    style={{
+                                      background: "rgba(255,255,255,0.1)",
+                                      color: "#ddd",
+                                    }}
+                                  >
+                                    취소
+                                  </Button>
+                                </ButtonRow>
+                                {requests[`createComment:${post.id}`]
+                                  ?.error && (
+                                  <ErrorMessage>
+                                    {requests[`createComment:${post.id}`].error}
+                                  </ErrorMessage>
+                                )}
+                              </InputArea>
+                            )}
+
+                            {post.comments?.length > 0 && (
+                              <CommentArea>
+                                {post.comments.map((comment) => (
+                                  <PostBox
+                                    key={comment.id}
+                                    style={{
+                                      padding: "1.2rem 0 0.8rem",
+                                      borderBottom: "none",
+                                    }}
+                                  >
+                                    <Nickname>
+                                      ↳ 익명
+                                      {comment.isAdminComment === true && (
+                                        <AdminBadge>운영진</AdminBadge>
+                                      )}
+                                    </Nickname>
+                                    <Content>{comment.content}</Content>
+                                    <Time>{comment.time}</Time>
+                                    {requests[`deleteComment:${comment.id}`]
+                                      ?.loading && (
+                                      <LoadingText>
+                                        댓글을 삭제하는 중...
+                                      </LoadingText>
+                                    )}
+                                    {requests[`deleteComment:${comment.id}`]
+                                      ?.error && (
+                                      <ErrorMessage>
+                                        {
+                                          requests[
+                                            `deleteComment:${comment.id}`
+                                          ].error
+                                        }
+                                      </ErrorMessage>
+                                    )}
+
+                                    <ButtonRow
+                                      style={{
+                                        marginTop: "0.6rem",
+                                        justifyContent: "flex-start",
+                                      }}
+                                    >
+                                      {comment.isOwner === true && (
+                                        <Button
+                                          disabled={
+                                            requests[
+                                              `deleteComment:${comment.id}`
+                                            ]?.loading
+                                          }
+                                          onClick={() =>
+                                            deleteComment(post.id, comment.id)
+                                          }
+                                          style={{
+                                            minWidth: "unset",
+                                            width: "auto",
+                                            padding: "0 1rem",
+                                            fontSize: "0.9rem",
+                                            background: "rgba(255,60,60,0.12)",
+                                            color: "#ff7777",
+                                          }}
+                                        >
+                                          삭제
+                                        </Button>
+                                      )}
+                                    </ButtonRow>
+                                  </PostBox>
+                                ))}
+                              </CommentArea>
+                            )}
                           </>
                         )}
                       </div>
