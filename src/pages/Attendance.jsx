@@ -489,17 +489,17 @@ export default function Attendance() {
 
   const handleRefreshAttendance = async () => {
     if (isRefreshing) return;
-  
+
     setIsRefreshing(true);
-  
+
     try {
       const requests = [fetchSessions()];
       const sessionId = selectedSessionIdRef.current;
-  
+
       if (sessionId != null) {
         requests.push(fetchSessionDetails(sessionId));
       }
-  
+
       await Promise.all(requests);
     } finally {
       setIsRefreshing(false);
