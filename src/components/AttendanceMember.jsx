@@ -66,13 +66,6 @@ const MobileEmptyText = styled(EmptyText)`
   }
 `;
 
-const AttendanceInfo = styled.div`
-  display: flex;
-  padding: 1rem 0;
-  flex-direction: column;
-  gap: 0.9rem;
-`;
-
 const InfoRow = styled.div`
   display: flex;
   align-items: center;
@@ -84,12 +77,6 @@ const InfoLabel = styled.span`
   color: rgba(255, 255, 255, 0.75);
   font-family: Pretendard;
   font-size: 0.9rem;
-`;
-
-const InfoValue = styled.strong`
-  color: #ffff;
-  font-family: Pretendard;
-  text-align: right;
 `;
 
 const StatusBadge = styled.span`
@@ -152,18 +139,13 @@ function getStatusLabel(status) {
 }
 
 export default function AttendanceMember({
-  todayAttendance,
+  todayMyAttendance,
   myAttendance,
   pagination,
   onOpenScanModal,
   onPageChange,
   formatDate,
 }) {
-  const todayAttendanceInfo =
-    Array.isArray(todayAttendance) && todayAttendance.length > 0
-      ? todayAttendance[0]
-      : null;
-
   return (
     <>
       <Panel>
@@ -176,25 +158,15 @@ export default function AttendanceMember({
 
       <Panel>
         <PanelTitle>오늘 내 출석</PanelTitle>
-        {todayAttendanceInfo ? (
-          <AttendanceInfo>
-            <InfoRow>
-              <InfoLabel>이름</InfoLabel>
-              <InfoValue>{todayAttendanceInfo.name || "-"}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>팀</InfoLabel>
-              <InfoValue>{todayAttendanceInfo.teamName ?? "-"}</InfoValue>
-            </InfoRow>
-            <InfoRow>
-              <InfoLabel>출석 상태</InfoLabel>
-              <StatusBadge>
-                {getStatusLabel(todayAttendanceInfo.attendanceStatus)}
-              </StatusBadge>
-            </InfoRow>
-          </AttendanceInfo>
+        {todayMyAttendance ? (
+          <InfoRow>
+            <InfoLabel>출석 상태</InfoLabel>
+            <StatusBadge>
+              {getStatusLabel(todayMyAttendance.attendanceStatus)}
+            </StatusBadge>
+          </InfoRow>
         ) : (
-          <EmptyText>오늘 출석 세션이 없습니다.</EmptyText>
+          <EmptyText>오늘 출석 내역이 없습니다.</EmptyText>
         )}
       </Panel>
 
