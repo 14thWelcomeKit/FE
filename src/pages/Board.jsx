@@ -350,57 +350,65 @@ const formatDate = (isoString) => {
   return isoString.slice(0, 10).replace(/-/g, ".");
 };
 
+const mapPost = (post) => ({
+  ...post,
+  id: post.qnaId,
+  time: formatDate(post.createdAt),
+  comments: [],
+  showCommentInput: false,
+  commentText: "",
+});
+
+const mapComment = (comment) => ({
+  ...comment,
+  id: comment.commentId,
+  time: formatDate(comment.createdAt),
+  isAdmin: comment.isAdminComment,
+});
+
 export default function Board() {
   const [posts, setPosts] = useState([]);
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  // 현재 로그인된 userId (실제 인증 연동 시 교체)
-  const userId = 1;
+  // 작업 종류와 대상 ID로 조회/작성/삭제 상태를 독립적으로 관리합니다.
+  // 상세 조회 연결 시에도 detail:{qnaId} 키를 사용합니다.
+  const [requests, setRequests] = useState({});
+  const setRequest = (key, loading, error = "") =>
+    setRequests((prev) => ({ ...prev, [key]: { loading, error } }));
+  const loading = requests.list?.loading;
+  const submitting = requests.createPost?.loading;
 
   const fetchComments = async (qnaId) => {
+    const key = `comments:${qnaId}`;
+    setRequest(key, true);
     try {
       const res = await axiosInstance.get(`/qna/comments/${qnaId}`);
-      console.log(res.data);
-      const data = res.data;
-      return data.map((c) => ({
-        id: c.id,
-        content: c.content,
-        time: formatDate(c.createdAt),
-        isAdmin: c.isAdminComment,
-      }));
-    } catch {
+      const data = res.data.data;
+      setRequest(key, false);
+      return data.map(mapComment);
+    } catch (e) {
+      setRequest(key, false, getApiErrorMessage(e, "댓글을 불러오지 못했습니다."));
       return [];
     }
   };
 
   const fetchPosts = async () => {
-    setLoading(true);
-    setError("");
+    setRequest("list", true);
     try {
       const res = await axiosInstance.get("/qna");
-      const data = res.data;
+      const data = res.data.data.qnas;
       const converted = await Promise.all(
         data.map(async (p) => {
-          const comments = await fetchComments(p.id);
+          const comments = await fetchComments(p.qnaId);
           return {
-            id: p.id,
-            content: p.content,
-            title: p.title,
-            time: formatDate(p.createdAt),
+            ...mapPost(p),
             comments,
-            showCommentInput: false,
-            commentText: "",
           };
         }),
       );
       setPosts(converted);
+      setRequest("list", false);
     } catch (e) {
-      setError(getApiErrorMessage(e, "게시글을 불러오지 못했습니다."));
-    } finally {
-      setLoading(false);
+      setRequest("list", false, getApiErrorMessage(e, "게시글을 불러오지 못했습니다."));
     }
   };
 
@@ -410,41 +418,32 @@ export default function Board() {
 
   const addPost = async () => {
     if (!text.trim()) return;
-    setSubmitting(true);
-    setError("");
+    setRequest("createPost", true);
     try {
       const params = new URLSearchParams({
-        userId,
         title: text.slice(0, 50),
         content: text,
       });
       const res = await axiosInstance.post(`/qna?${params.toString()}`);
-      const newP = res.data;
-      const converted = {
-        id: newP.id,
-        content: newP.content,
-        title: newP.title,
-        time: formatDate(newP.createdAt),
-        comments: [],
-        showCommentInput: false,
-        commentText: "",
-      };
+      const converted = mapPost(res.data.data);
       setPosts((prev) => [converted, ...prev]);
       setText("");
+      setRequest("createPost", false);
     } catch (e) {
-      setError(getApiErrorMessage(e, "게시글 작성에 실패했습니다."));
-    } finally {
-      setSubmitting(false);
+      setRequest("createPost", false, getApiErrorMessage(e, "게시글 작성에 실패했습니다."));
     }
   };
 
   const deletePost = async (id) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
+    const key = `deletePost:${id}`;
+    setRequest(key, true);
     try {
-      await axiosInstance.delete(`/qna/${id}?userId=${userId}`);
+      await axiosInstance.delete(`/qna/${id}`);
       setPosts((prev) => prev.filter((p) => p.id !== id));
+      setRequest(key, false);
     } catch (e) {
-      setError(getApiErrorMessage(e, "게시글 삭제에 실패했습니다."));
+      setRequest(key, false, getApiErrorMessage(e, "게시글 삭제에 실패했습니다."));
     }
   };
 
@@ -463,22 +462,17 @@ export default function Board() {
   const addComment = async (postId) => {
     const post = posts.find((p) => p.id === postId);
     if (!post?.commentText.trim()) return;
+    const key = `createComment:${postId}`;
+    setRequest(key, true);
     try {
       const params = new URLSearchParams({
-        userId,
         qnaId: postId,
         content: post.commentText,
       });
       const res = await axiosInstance.post(
         `/qna/comments?${params.toString()}`,
       );
-      const newC = res.data;
-      const converted = {
-        id: newC.id,
-        content: newC.content,
-        time: formatDate(newC.createdAt),
-        isAdmin: newC.isAdminComment,
-      };
+      const converted = mapComment(res.data.data);
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -491,15 +485,18 @@ export default function Board() {
             : p,
         ),
       );
+      setRequest(key, false);
     } catch (e) {
-      setError(getApiErrorMessage(e, "댓글 작성에 실패했습니다."));
+      setRequest(key, false, getApiErrorMessage(e, "댓글 작성에 실패했습니다."));
     }
   };
 
   const deleteComment = async (postId, commentId) => {
     if (!window.confirm("정말 댓글을 삭제하시겠습니까?")) return;
+    const key = `deleteComment:${commentId}`;
+    setRequest(key, true);
     try {
-      await axiosInstance.delete(`/qna/comments/${commentId}?userId=${userId}`);
+      await axiosInstance.delete(`/qna/comments/${commentId}`);
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -507,8 +504,9 @@ export default function Board() {
             : p,
         ),
       );
+      setRequest(key, false);
     } catch (e) {
-      setError(getApiErrorMessage(e, "댓글 삭제에 실패했습니다."));
+      setRequest(key, false, getApiErrorMessage(e, "댓글 삭제에 실패했습니다."));
     }
   };
 
@@ -557,7 +555,9 @@ export default function Board() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
-              {error && <ErrorMessage>{error}</ErrorMessage>}
+              {requests.createPost?.error && (
+                <ErrorMessage>{requests.createPost.error}</ErrorMessage>
+              )}
               <ButtonRow>
                 <Button onClick={addPost} disabled={submitting}>
                   {submitting ? "등록 중..." : "등록"}
@@ -574,6 +574,8 @@ export default function Board() {
             <div style={{ marginTop: "0.8rem" }}>
               {loading ? (
                 <LoadingText>게시글을 불러오는 중...</LoadingText>
+              ) : requests.list?.error ? (
+                <ErrorMessage>{requests.list.error}</ErrorMessage>
               ) : posts.length === 0 ? (
                 <LoadingText>아직 등록된 문의가 없습니다.</LoadingText>
               ) : (
@@ -582,6 +584,18 @@ export default function Board() {
                     <Nickname>익명</Nickname>
                     <Content>{post.content}</Content>
                     <Time>{post.time}</Time>
+                    {requests[`deletePost:${post.id}`]?.loading && (
+                      <LoadingText>게시글을 삭제하는 중...</LoadingText>
+                    )}
+                    {requests[`deletePost:${post.id}`]?.error && (
+                      <ErrorMessage>{requests[`deletePost:${post.id}`].error}</ErrorMessage>
+                    )}
+                    {requests[`comments:${post.id}`]?.loading && (
+                      <LoadingText>댓글을 불러오는 중...</LoadingText>
+                    )}
+                    {requests[`comments:${post.id}`]?.error && (
+                      <ErrorMessage>{requests[`comments:${post.id}`].error}</ErrorMessage>
+                    )}
 
                     <ButtonRow
                       style={{
@@ -597,7 +611,7 @@ export default function Board() {
                           padding: "0 1.3rem",
                         }}
                       >
-                        댓글 {post.comments.length}
+                        댓글 {requests[`comments:${post.id}`]?.error ? "조회 실패" : post.comments.length}
                       </Button>
                       {/**<Button
                         onClick={() => deletePost(post.id)}
@@ -620,8 +634,11 @@ export default function Board() {
                           }
                         />
                         <ButtonRow>
-                          <Button onClick={() => addComment(post.id)}>
-                            등록
+                          <Button
+                            onClick={() => addComment(post.id)}
+                            disabled={requests[`createComment:${post.id}`]?.loading}
+                          >
+                            {requests[`createComment:${post.id}`]?.loading ? "등록 중..." : "등록"}
                           </Button>
                           <Button
                             onClick={() => toggleCommentInput(post.id)}
@@ -633,6 +650,9 @@ export default function Board() {
                             취소
                           </Button>
                         </ButtonRow>
+                        {requests[`createComment:${post.id}`]?.error && (
+                          <ErrorMessage>{requests[`createComment:${post.id}`].error}</ErrorMessage>
+                        )}
                       </InputArea>
                     )}
 
@@ -651,6 +671,12 @@ export default function Board() {
                             </Nickname>
                             <Content>{comment.content}</Content>
                             <Time>{comment.time}</Time>
+                            {requests[`deleteComment:${comment.id}`]?.loading && (
+                              <LoadingText>댓글을 삭제하는 중...</LoadingText>
+                            )}
+                            {requests[`deleteComment:${comment.id}`]?.error && (
+                              <ErrorMessage>{requests[`deleteComment:${comment.id}`].error}</ErrorMessage>
+                            )}
 
                             <ButtonRow
                               style={{
