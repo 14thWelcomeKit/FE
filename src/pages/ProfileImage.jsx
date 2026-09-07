@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Image from "../images/logo.png";
 import { useNavigate } from "react-router-dom";
 import axiosInstance, { getApiErrorMessage } from "../axiosInstance";
+import { normalizeImageFile } from "../utils/imageUpload";
 
 const ProfileImageContainer = styled.div`
   display: flex;
@@ -110,6 +111,11 @@ const UploadButton = styled.button`
     color: #ffff;
   }
 
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
   @media (max-width: ${breakpoints.mobile}) {
     width: 10rem;
     height: 2.75rem;
@@ -156,12 +162,35 @@ const SubmitButton = styled(UploadButton)`
 export default function ProfileImage() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const previewObjectUrlRef = useRef(null);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    fetchMyProfile();
+    let cancelled = false;
+
+    const fetchUserInfo = async () => {
+      try {
+        const response = await axiosInstance.get("/user/info");
+        if (!cancelled) setProfileImageUrl(response.data?.profileImage || null);
+      } catch (error) {
+        if (!cancelled) {
+          setError(getApiErrorMessage(error, "프로필 정보를 불러오지 못했습니다."));
+        }
+      }
+    };
+
+    fetchUserInfo();
+    return () => {
+      cancelled = true;
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+    };
   }, []);
 
   const handleSubmit = async () => {
@@ -170,43 +199,75 @@ export default function ProfileImage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    console.log("전송할 FormData:", formData.get("image")); // 디버깅용 로그
-
+    setIsUploading(true);
+    setError("");
     try {
       const response = await axiosInstance.post(
-        "/user/uploadProfile",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        "/user/profileImage/upload-url",
+        { contentType: selectedFile.type }
       );
-      console.log("서버 응답:", response.data);
+      const { uploadUrl, fileUrl } = response.data;
+
+      if (!uploadUrl || !fileUrl) {
+        throw new Error("업로드 URL 응답이 올바르지 않습니다.");
+      }
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": selectedFile.type,
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("이미지 업로드에 실패했습니다. 다시 시도해주세요.");
+      }
+
+      await axiosInstance.patch("/user/profileImage", {
+        fileUrl,
+      });
+
       alert("프로필 이미지가 성공적으로 업로드되었습니다.");
       navigate("/mypage");
     } catch (error) {
-      setError(getApiErrorMessage(error, "이미지 업로드에 실패했습니다. 다시 시도해주세요."));
+      setError(
+        error.response
+          ? getApiErrorMessage(error, "이미지 업로드에 실패했습니다. 다시 시도해주세요.")
+          : error.message || "이미지 업로드에 실패했습니다. 다시 시도해주세요."
+      );
       console.error("Error fetching profile image:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
+  const handleFileSelect = async (e) => {
+    const input = e.currentTarget;
+    const file = input.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("파일 크기는 5MB를 초과할 수 없습니다.");
-        return;
-      }
-      if (!file.type.startsWith("image/")) {
-        setError("이미지 파일만 업로드 가능합니다.");
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file));
+      setIsConverting(true);
       setError("");
+
+      try {
+        const normalizedFile = await normalizeImageFile(file);
+        if (normalizedFile.size > 5 * 1024 * 1024) {
+          throw new Error("파일 크기는 5MB를 초과할 수 없습니다.");
+        }
+
+        if (previewObjectUrlRef.current) {
+          URL.revokeObjectURL(previewObjectUrlRef.current);
+        }
+        const previewUrl = URL.createObjectURL(normalizedFile);
+        previewObjectUrlRef.current = previewUrl;
+        setSelectedFile(normalizedFile);
+        setPreviewImage(previewUrl);
+      } catch (error) {
+        setError(error.message || "이미지 변환 중 오류가 발생했습니다.");
+      } finally {
+        setIsConverting(false);
+        input.value = "";
+      }
     }
   };
 
@@ -214,17 +275,6 @@ export default function ProfileImage() {
     fileInputRef.current.click();
   };
 
-  const fetchMyProfile = async () => {
-    try {
-      const response = await axiosInstance.get("/user/profileImage", {
-        responseType: "blob",
-      });
-      const imageUrl = URL.createObjectURL(response.data);
-      setPreviewImage(imageUrl);
-    } catch (error) {
-      console.error("Error fetching profile image:", error);
-    }
-  };
   return (
     <>
       <Header />
@@ -233,23 +283,30 @@ export default function ProfileImage() {
           <Title>프로필 이미지 등록</Title>
           <ImageUploadContainer>
             <ImagePreview>
-              {previewImage ? (
-                <PreviewImage src={previewImage} alt="프로필 미리보기" />
-              ) : (
-                <PreviewImage src={Image} alt="기본 프로필" />
-              )}
+              <PreviewImage
+                src={previewImage || profileImageUrl || Image}
+                alt="프로필 미리보기"
+              />
             </ImagePreview>
             <FileInput
               type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,.heic,.heif"
+              disabled={isConverting || isUploading}
             />
-            <UploadButton onClick={handleUpload}>이미지 선택</UploadButton>
+            <UploadButton
+              onClick={handleUpload}
+              disabled={isConverting || isUploading}
+            >
+              {isConverting ? "이미지 변환 중..." : "이미지 선택"}
+            </UploadButton>
             {error && <ErrorMessage>{error}</ErrorMessage>}
             <ButtonContainer>
-              <SubmitButton onClick={handleSubmit}>업로드</SubmitButton>
-              <UploadButton onClick={() => navigate("/mypage")}>
+              <SubmitButton onClick={handleSubmit} disabled={isConverting || isUploading}>
+                {isUploading ? "업로드 중..." : "업로드"}
+              </SubmitButton>
+              <UploadButton onClick={() => navigate("/mypage")} disabled={isUploading}>
                 취소
               </UploadButton>
             </ButtonContainer>

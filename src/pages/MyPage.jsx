@@ -101,7 +101,8 @@ const ImgBody = styled.img`
   width: 45%;
   max-width: 32.4375rem;
   height: auto;
-  object-fit: contain;
+  border-radius: 50%;
+  object-fit: cover;
   aspect-ratio: 1/1;
 
   @media (max-width: ${breakpoints.laptop}) {
@@ -233,71 +234,77 @@ const MypageBox = styled.div`
   }
 `;
 
+const LoadingText = styled.p`
+  margin: auto;
+  color: #ffff;
+  font-family: Pretendard;
+  font-size: 1.25rem;
+`;
+
 export default function MyPage() {
   const navigate = useNavigate();
   const [userdata, setUserdata] = useState({});
-  const [profileImage, setProfileImage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   // const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchMyData = async () => {
+      try {
+        const response = await axiosInstance.get("/user/info");
+        if (!cancelled) setUserdata(response.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
     fetchMyData();
-    fetchMyProfile();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const fetchMyData = async () => {
-    try {
-      const response = await axiosInstance.get("/user/info");
-      console.log(response.data);
-      setUserdata(response.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
-  const fetchMyProfile = async () => {
-    try {
-      const response = await axiosInstance.get("/user/profileImage", {
-        responseType: "blob",
-      });
-      const imageUrl = URL.createObjectURL(response.data);
-      setProfileImage(imageUrl);
-    } catch (error) {
-      console.error("Error fetching profile image:", error);
-    }
-  };
 
   return (
     <>
       <Header />
       <PageContainer>
         <MypageContainer>
-          <MypageHeader>
-            <HeaderText>MY PAGE</HeaderText>
-            <ButtonContainer>
-              <MypageButton onClick={() => navigate("/change-profile")}>
-                프로필 이미지 변경
-              </MypageButton>
-              <MypageButton onClick={() => navigate("/change-password")}>
-                비밀번호 변경
-              </MypageButton>
-              {/* <MypageButton onClick={() => setIsModalOpen(true)}>
-                웰컴 메시지 확인
-              </MypageButton> */}
-            </ButtonContainer>
-          </MypageHeader>
-          <MypageBody>
-            <ImgBody src={profileImage || Image} alt="프로필 이미지" />
-            <TextBody>
-              <MypageText>이름</MypageText>
-              <MypageBox>{userdata.name}</MypageBox>
-              <MypageText>학번</MypageText>
-              <MypageBox>{userdata.studentName}</MypageBox>
-              <MypageText>소속팀</MypageText>
-              <MypageBox>{userdata.teamName}</MypageBox>
-              <MypageText>개발트랙</MypageText>
-              <MypageBox>{userdata.devPart}</MypageBox>
-            </TextBody>
-          </MypageBody>
+          {isLoading ? (
+            <LoadingText>로딩 중...</LoadingText>
+          ) : (
+            <>
+              <MypageHeader>
+                <HeaderText>MY PAGE</HeaderText>
+                <ButtonContainer>
+                  <MypageButton onClick={() => navigate("/change-profile")}>
+                    프로필 이미지 변경
+                  </MypageButton>
+                  <MypageButton onClick={() => navigate("/change-password")}>
+                    비밀번호 변경
+                  </MypageButton>
+                  {/* <MypageButton onClick={() => setIsModalOpen(true)}>
+                    웰컴 메시지 확인
+                  </MypageButton> */}
+                </ButtonContainer>
+              </MypageHeader>
+              <MypageBody>
+                <ImgBody src={userdata.profileImage || Image} alt="프로필 이미지" />
+                <TextBody>
+                  <MypageText>이름</MypageText>
+                  <MypageBox>{userdata.name}</MypageBox>
+                  <MypageText>학번</MypageText>
+                  <MypageBox>{userdata.studentName}</MypageBox>
+                  <MypageText>소속팀</MypageText>
+                  <MypageBox>{userdata.teamName}</MypageBox>
+                  <MypageText>개발트랙</MypageText>
+                  <MypageBox>{userdata.devPart}</MypageBox>
+                </TextBody>
+              </MypageBody>
+            </>
+          )}
         </MypageContainer>
       </PageContainer>
       {/* {isModalOpen && <WelcomeModal onClose={() => setIsModalOpen(false)} />} */}
