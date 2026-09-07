@@ -258,6 +258,21 @@ const Button = styled.button`
   }
 `;
 
+const SmallButton = styled(Button)`
+  height: 2.3rem;
+  padding: 0 1.3rem;
+  font-size: 0.95rem;
+  border-radius: 0.8rem;
+  margin-top: 0.6rem;
+  padding-bottom: 0.2rem;
+
+  @media (max-width: ${breakpoints.mobile}) {
+    height: 1.8rem;
+    font-size: 0.85rem;
+    padding: 0 1.1rem 0.2rem;
+  }
+`;
+
 const PostBox = styled.div`
   padding: 1.6rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -846,13 +861,13 @@ export default function Board() {
                     <Nickname>익명</Nickname>
                     <Content>{post.title}</Content>
                     <Time>{post.time}</Time>
-                    <Button
+                    <SmallButton
                       onClick={() => togglePost(post.id)}
                       aria-expanded={post.expanded}
                       aria-controls={`qna-detail-${post.id}`}
                     >
                       {post.expanded ? "접기" : "펼치기"}
-                    </Button>
+                    </SmallButton>
                     {post.expanded && (
                       <div id={`qna-detail-${post.id}`}>
                         {requests[`detail:${post.id}`]?.loading && (
