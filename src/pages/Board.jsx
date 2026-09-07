@@ -3,10 +3,10 @@ import styled from "styled-components";
 import PageContainer from "../components/PageContainer";
 import breakpoints from "../components/breakpoints";
 import Header from "../components/Header";
+import { useAuth } from "../AuthContext";
 import { BsExclamationTriangle } from "react-icons/bs";
 
 import axiosInstance, { getApiErrorMessage } from "./../axiosInstance";
-const API_URL = process.env.REACT_APP_API_URL;
 
 const BoardContent = styled.div`
   display: flex;
@@ -354,7 +354,8 @@ const mapPost = (post) => ({
   ...post,
   id: post.qnaId,
   time: formatDate(post.createdAt),
-  comments: [],
+  comments: null,
+  expanded: false,
   showCommentInput: false,
   commentText: "",
 });
@@ -367,14 +368,18 @@ const mapComment = (comment) => ({
 });
 
 export default function Board() {
+  const { isAdmin } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [page, setPage] = useState(0);
+  const [pageInfo, setPageInfo] = useState(null);
+  const [listAttempt, setListAttempt] = useState(0);
   const [text, setText] = useState("");
   // 작업 종류와 대상 ID로 조회/작성/삭제 상태를 독립적으로 관리합니다.
   // 상세 조회 연결 시에도 detail:{qnaId} 키를 사용합니다.
   const [requests, setRequests] = useState({});
   const setRequest = (key, loading, error = "") =>
     setRequests((prev) => ({ ...prev, [key]: { loading, error } }));
-  const loading = requests.list?.loading;
+  const loading = requests.list?.loading ?? true;
   const submitting = requests.createPost?.loading;
 
   const fetchComments = async (qnaId) => {
@@ -391,30 +396,48 @@ export default function Board() {
     }
   };
 
-  const fetchPosts = async () => {
-    setRequest("list", true);
-    try {
-      const res = await axiosInstance.get("/qna");
-      const data = res.data.data.qnas;
-      const converted = await Promise.all(
-        data.map(async (p) => {
-          const comments = await fetchComments(p.qnaId);
-          return {
-            ...mapPost(p),
-            comments,
-          };
-        }),
-      );
-      setPosts(converted);
-      setRequest("list", false);
-    } catch (e) {
-      setRequest("list", false, getApiErrorMessage(e, "게시글을 불러오지 못했습니다."));
-    }
-  };
-
   useEffect(() => {
+    const controller = new AbortController();
+    setPosts([]);
+    setPageInfo(null);
+    setRequests((prev) => ({
+      createPost: prev.createPost,
+      list: { loading: true, error: "" },
+    }));
+
+    const fetchPosts = async () => {
+      try {
+        const res = await axiosInstance.get("/qna", {
+          params: { page, size: 10 },
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        const { qnas, pageInfo: nextPageInfo } = res.data.data;
+        setPosts(qnas.map(mapPost));
+        setPageInfo(nextPageInfo);
+        setRequests((prev) => ({
+          ...prev,
+          list: { loading: false, error: "" },
+        }));
+      } catch (e) {
+        if (controller.signal.aborted) return;
+        setRequests((prev) => ({
+          ...prev,
+          list: {
+            loading: false,
+            error: getApiErrorMessage(e, "게시글을 불러오지 못했습니다."),
+          },
+        }));
+      }
+    };
     fetchPosts();
-  }, []);
+    return () => controller.abort();
+  }, [page, listAttempt]);
+
+  const togglePost = (id) =>
+    setPosts((prev) => prev.map((post) =>
+      post.id === id ? { ...post, expanded: !post.expanded } : post,
+    ));
 
   const addPost = async () => {
     if (!text.trim()) return;
@@ -478,7 +501,7 @@ export default function Board() {
           p.id === postId
             ? {
                 ...p,
-                comments: [...p.comments, converted],
+                comments: [...(p.comments ?? []), converted],
                 commentText: "",
                 showCommentInput: false,
               }
@@ -500,7 +523,7 @@ export default function Board() {
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, comments: p.comments.filter((c) => c.id !== commentId) }
+            ? { ...p, comments: p.comments?.filter((c) => c.id !== commentId) ?? null }
             : p,
         ),
       );
@@ -572,18 +595,36 @@ export default function Board() {
             </InputArea>
 
             <div style={{ marginTop: "0.8rem" }}>
+              <Title>{isAdmin ? "전체 문의" : "내 문의"}</Title>
               {loading ? (
                 <LoadingText>게시글을 불러오는 중...</LoadingText>
               ) : requests.list?.error ? (
-                <ErrorMessage>{requests.list.error}</ErrorMessage>
+                <>
+                  <ErrorMessage>{requests.list.error}</ErrorMessage>
+                  <Button onClick={() => setListAttempt((prev) => prev + 1)}>
+                    다시 시도
+                  </Button>
+                </>
               ) : posts.length === 0 ? (
                 <LoadingText>아직 등록된 문의가 없습니다.</LoadingText>
               ) : (
                 posts.map((post) => (
                   <PostBox key={post.id}>
                     <Nickname>익명</Nickname>
-                    <Content>{post.content}</Content>
+                    <Content>{post.title}</Content>
                     <Time>{post.time}</Time>
+                    <Button
+                      onClick={() => togglePost(post.id)}
+                      aria-expanded={post.expanded}
+                      aria-controls={`qna-detail-${post.id}`}
+                    >
+                      {post.expanded ? "접기" : "펼치기"}
+                    </Button>
+                    {post.expanded && (
+                      <div id={`qna-detail-${post.id}`}>
+                        {post.content === undefined ? (
+                          <LoadingText>본문을 아직 불러오지 않았습니다.</LoadingText>
+                        ) : <Content>{post.content}</Content>}
                     {requests[`deletePost:${post.id}`]?.loading && (
                       <LoadingText>게시글을 삭제하는 중...</LoadingText>
                     )}
@@ -611,7 +652,9 @@ export default function Board() {
                           padding: "0 1.3rem",
                         }}
                       >
-                        댓글 {requests[`comments:${post.id}`]?.error ? "조회 실패" : post.comments.length}
+                        {requests[`comments:${post.id}`]?.error
+                          ? "댓글 조회 실패"
+                          : post.comments === null ? "댓글 보기" : `댓글 ${post.comments.length}`}
                       </Button>
                       {/**<Button
                         onClick={() => deletePost(post.id)}
@@ -656,7 +699,7 @@ export default function Board() {
                       </InputArea>
                     )}
 
-                    {post.comments.length > 0 && (
+                    {post.comments?.length > 0 && (
                       <CommentArea>
                         {post.comments.map((comment) => (
                           <PostBox
@@ -704,8 +747,31 @@ export default function Board() {
                         ))}
                       </CommentArea>
                     )}
+                      </div>
+                    )}
                   </PostBox>
                 ))
+              )}
+              {!loading && pageInfo && (
+                <ButtonRow aria-label="문의 목록 페이지 이동">
+                  <Button
+                    disabled={pageInfo.page === 0}
+                    onClick={() => setPage(pageInfo.page - 1)}
+                  >
+                    이전
+                  </Button>
+                  <Time aria-live="polite">
+                    {pageInfo.totalPages === 0
+                      ? "총 0건"
+                      : `${pageInfo.page + 1} / ${pageInfo.totalPages} 페이지 · 총 ${pageInfo.totalElements}건`}
+                  </Time>
+                  <Button
+                    disabled={pageInfo.page + 1 >= pageInfo.totalPages}
+                    onClick={() => setPage(pageInfo.page + 1)}
+                  >
+                    다음
+                  </Button>
+                </ButtonRow>
               )}
             </div>
           </BoardContainer>
