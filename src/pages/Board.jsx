@@ -371,6 +371,7 @@ const mapComment = (comment) => ({
 export default function Board() {
   const { isAdmin, token } = useAuth();
   const detailControllers = useRef(new Map());
+  const commentControllers = useRef(new Map());
   const [detailNotice, setDetailNotice] = useState("");
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(0);
@@ -385,7 +386,11 @@ export default function Board() {
   const loading = requests.list?.loading ?? true;
   const submitting = requests.createPost?.loading;
 
-  const fetchComments = async (qnaId, signal) => {
+  const fetchComments = async (qnaId) => {
+    if (commentControllers.current.has(qnaId)) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    commentControllers.current.set(qnaId, controller);
     const key = `comments:${qnaId}`;
     setRequest(key, true);
     try {
@@ -397,13 +402,27 @@ export default function Board() {
       setRequest(key, false);
     } catch (e) {
       if (signal.aborted) return;
-      setRequest(key, false, getApiErrorMessage(e, "댓글을 불러오지 못했습니다."));
+      const status = e.response?.status;
+      if (status === 403 || status === 404) {
+        setDetailNotice(status === 403
+          ? "이 문의글의 댓글에 접근할 권한이 없습니다."
+          : "존재하지 않거나 삭제된 문의글입니다.");
+        setPosts((prev) => prev.filter((post) => post.id !== qnaId));
+        setListAttempt((prev) => prev + 1);
+      } else {
+        setRequest(key, false, getApiErrorMessage(e, "댓글을 불러오지 못했습니다."));
+      }
+    } finally {
+      if (commentControllers.current.get(qnaId) === controller) {
+        commentControllers.current.delete(qnaId);
+      }
     }
   };
 
   useEffect(() => {
     const controller = new AbortController();
     const pendingDetails = detailControllers.current;
+    const pendingComments = commentControllers.current;
     setPosts([]);
     setPageInfo(null);
     setRequests((prev) => ({
@@ -441,6 +460,8 @@ export default function Board() {
       controller.abort();
       pendingDetails.forEach((pending) => pending.abort());
       pendingDetails.clear();
+      pendingComments.forEach((pending) => pending.abort());
+      pendingComments.clear();
     };
   }, [page, listAttempt, token]);
 
@@ -462,7 +483,7 @@ export default function Board() {
         detailLoaded: true,
       } : post));
       setRequest(key, false);
-      await fetchComments(id, controller.signal);
+      await fetchComments(id);
     } catch (e) {
       if (controller.signal.aborted) return;
       const status = e.response?.status;
@@ -698,7 +719,16 @@ export default function Board() {
                       <LoadingText>댓글을 불러오는 중...</LoadingText>
                     )}
                     {requests[`comments:${post.id}`]?.error && (
-                      <ErrorMessage>{requests[`comments:${post.id}`].error}</ErrorMessage>
+                      <>
+                        <ErrorMessage role="alert">{requests[`comments:${post.id}`].error}</ErrorMessage>
+                        <Button onClick={() => fetchComments(post.id)}>
+                          댓글 다시 불러오기
+                        </Button>
+                      </>
+                    )}
+                    {!requests[`comments:${post.id}`]?.loading &&
+                      !requests[`comments:${post.id}`]?.error && post.comments?.length === 0 && (
+                      <LoadingText>아직 댓글이 없습니다.</LoadingText>
                     )}
 
                     <ButtonRow
@@ -774,7 +804,10 @@ export default function Board() {
                             }}
                           >
                             <Nickname>
-                              ↳ {comment.isAdmin ? "운영진" : "익명"} ...
+                              ↳ 익명
+                              {comment.isAdminComment === true && (
+                                <AdminBadge>운영진</AdminBadge>
+                              )}
                             </Nickname>
                             <Content>{comment.content}</Content>
                             <Time>{comment.time}</Time>
@@ -791,7 +824,8 @@ export default function Board() {
                                 justifyContent: "flex-start",
                               }}
                             >
-                              {/** <Button
+                              {comment.isOwner === true && <Button
+                                disabled={requests[`deleteComment:${comment.id}`]?.loading}
                                 onClick={() =>
                                   deleteComment(post.id, comment.id)
                                 }
@@ -805,7 +839,7 @@ export default function Board() {
                                 }}
                               >
                                 삭제
-                              </Button> */}
+                              </Button>}
                             </ButtonRow>
                           </PostBox>
                         ))}
