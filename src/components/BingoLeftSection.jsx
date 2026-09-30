@@ -175,6 +175,23 @@ export default function BingoLeftSection({
           조건에 맞는 사람을 직접 찾아 같은 칸에서 서로의 4자리 코드를
           입력해보세요.
         </PageDescription>
+        <ScoreNotice aria-labelledby="bingo-score-title">
+          <ScoreTitle id="bingo-score-title">
+            줄 대신 점수를 모으는 땅따먹기 빙고!
+          </ScoreTitle>
+          <ScoreDescription>
+            미션을 완료해 칸을 차지하고 점수를 쌓아보세요.
+            <br />
+            빙고 줄 수가 아닌 <strong>획득한 총점이 높을수록 상위 랭킹</strong>에 올라요.
+          </ScoreDescription>
+          <ScoreBadges aria-label="단계별 획득 점수">
+            {[1, 2, 3].map((difficulty) => (
+              <LegendItem key={difficulty} $difficulty={difficulty}>
+                {difficulty}단계 · {difficulty}점
+              </LegendItem>
+            ))}
+          </ScoreBadges>
+        </ScoreNotice>
       </IntroSection>
 
       <BoardSection>
@@ -360,6 +377,44 @@ const PageDescription = styled.p`
 const BoardSection = styled.section`
   grid-area: board;
   min-width: 0;
+`;
+
+const ScoreNotice = styled.aside`
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #4c4a47;
+  border-radius: 0.75rem;
+  background: #252421;
+  font-family: Pretendard, sans-serif;
+`;
+
+const ScoreTitle = styled.h2`
+  margin: 0;
+  color: var(--white);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+`;
+
+const ScoreDescription = styled.p`
+  margin: 0.5rem 0 0;
+  color: #adadad;
+  font-size: 0.8rem;
+  line-height: 1.65;
+  word-break: keep-all;
+
+  strong {
+    color: var(--orange);
+    font-weight: 700;
+  }
+`;
+
+const ScoreBadges = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.85rem;
 `;
 
 const MyCodeCard = styled.div`
