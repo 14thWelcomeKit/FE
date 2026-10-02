@@ -12,6 +12,7 @@ export default function Bingo() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const verifyingRef = useRef(false);
   const queryRef = useRef(null);
   const verifyRef = useRef(null);
@@ -55,8 +56,8 @@ export default function Bingo() {
   }, [fetchRanking]);
 
 
-  const fetchBoard = useCallback(async () => {
-    if (verifyingRef.current) return;
+  const fetchBoard = useCallback(async ({ allowDuringMutation = false } = {}) => {
+    if (verifyingRef.current && !allowDuringMutation) return;
     queryRef.current?.abort();
     const controller = new AbortController();
     queryRef.current = controller;
@@ -167,6 +168,52 @@ export default function Bingo() {
     }
   };
 
+  const cancelVerification = async (cellId) => {
+    if (verifyingRef.current ||
+        board?.cells.find((cell) => cell.cellId === cellId)?.status !== "PENDING") return;
+    verifyingRef.current = true;
+    setIsCancelling(true);
+    queryRef.current?.abort();
+    setIsLoading(false);
+    const controller = new AbortController();
+    verifyRef.current = controller;
+    let shouldRefresh = false;
+    try {
+      const response = await axiosInstance.delete(`/bingo/cells/${cellId}/verify`, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      shouldRefresh = true;
+      const result = response.data?.data;
+      if (result?.cellId !== cellId || result.status !== "INCOMPLETE" ||
+          result.matchedWithName !== null || result.expiresAt !== null) {
+        throw new Error("Invalid cancellation response");
+      }
+      setError("");
+      setBoard((previous) => ({
+        ...previous,
+        cells: previous.cells.map((cell) => cell.cellId === cellId ? {
+          ...cell,
+          status: result.status,
+          matchedWithName: result.matchedWithName,
+          expiresAt: result.expiresAt,
+        } : cell),
+      }));
+      return result;
+    } catch (requestError) {
+      // A failed response may arrive after the server has already changed the cell.
+      shouldRefresh = requestError.response?.status !== 401;
+      throw requestError;
+    } finally {
+      // Keep actions locked during reconciliation so a stale query cannot overwrite a new request.
+      if (!controller.signal.aborted && shouldRefresh) {
+        await fetchBoard({ allowDuringMutation: true });
+      }
+      verifyingRef.current = false;
+      if (!controller.signal.aborted) setIsCancelling(false);
+    }
+  };
+
   return (
     <Root>
       <Header />
@@ -184,6 +231,7 @@ export default function Bingo() {
           ) : (
             <BingoLeftSection myCode={board.myCode} cells={board.cells}
               onVerify={verifyCell} isVerifying={isVerifying}
+              onCancel={cancelVerification} isCancelling={isCancelling}
               queryError={error} onRetry={fetchBoard} />
           )}
           <BingoRightSection
