@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { IoClose } from "react-icons/io5";
+import { IoCheckmarkCircle, IoClose } from "react-icons/io5";
 import { getApiErrorMessage } from "../axiosInstance";
 import breakpoints from "./breakpoints";
 
@@ -95,6 +95,7 @@ export default function BingoLeftSection({
     (mission) => mission.id === selectedCellId,
   );
   const selectedState = selectedMission ? selectedMission : null;
+  const isSelectedCompleted = selectedState?.status === "COMPLETED";
 
   useEffect(() => {
     if (
@@ -117,8 +118,7 @@ export default function BingoLeftSection({
       : null;
 
   const openCodePanel = (mission) => {
-    const state = mission;
-    if (isVerifying || state?.status === "COMPLETED") return;
+    if (isVerifying) return;
     setSelectedCellId(mission.id);
     setPartnerCode("");
     setInputError("");
@@ -138,7 +138,7 @@ export default function BingoLeftSection({
   };
 
   const handleMatchRequest = async () => {
-    if (!selectedMission || isVerifying) return;
+    if (!selectedMission || isVerifying || isSelectedCompleted) return;
     if (!/^\d{4}$/.test(partnerCode)) {
       setInputError("상대방의 4자리 코드를 입력해주세요.");
       return;
@@ -226,7 +226,6 @@ export default function BingoLeftSection({
           {missions.map((mission) => {
             const state = mission;
             const isSelected = selectedMission?.id === mission.id;
-            const isCompleted = state.status === "COMPLETED";
 
             return (
               <BingoCell
@@ -235,7 +234,7 @@ export default function BingoLeftSection({
                 $difficulty={mission.difficulty}
                 $status={state.status}
                 $selected={isSelected}
-                disabled={isCompleted || isVerifying}
+                disabled={isVerifying}
                 onClick={() => openCodePanel(mission)}
                 aria-label={`${mission.mission}, ${DIFFICULTY[mission.difficulty].shortLabel}`}
               >
@@ -269,11 +268,11 @@ export default function BingoLeftSection({
         </PolicyNotice>
       </BoardSection>
 
-      {selectedMission && selectedState?.status !== "COMPLETED" && (
+      {selectedMission && (
         <>
           <PanelOverlay
             type="button"
-            aria-label="코드 입력창 닫기"
+            aria-label="미션 상세 닫기"
             onClick={closeCodePanel}
           />
           <CodePanel
@@ -289,11 +288,24 @@ export default function BingoLeftSection({
             >
               <IoClose />
             </PanelClose>
-            <PanelEyebrow>선택한 미션</PanelEyebrow>
+            <PanelEyebrow>
+              {isSelectedCompleted ? DIFFICULTY[selectedMission.difficulty].label : "선택한 미션"}
+            </PanelEyebrow>
             <PanelMission>{selectedMission.mission}</PanelMission>
-            <PanelTitle id="code-panel-title">상대방 코드 입력</PanelTitle>
+            <PanelTitle id="code-panel-title">
+              {isSelectedCompleted
+                ? selectedState.matchedWithName
+                  ? `${selectedState.matchedWithName}님과 완료`
+                  : "미션 완료"
+                : "상대방 코드 입력"}
+            </PanelTitle>
 
-            {selectedState?.status === "PENDING" ? (
+            {isSelectedCompleted ? (
+              <CompletedNotice>
+                <IoCheckmarkCircle aria-hidden="true" />
+                <span>이미 완료한 미션입니다.</span>
+              </CompletedNotice>
+            ) : selectedState?.status === "PENDING" ? (
               <PendingBox>
                 <PendingLabel>대기 상태</PendingLabel>
                 {selectedRemainingSeconds !== null && (
@@ -331,13 +343,17 @@ export default function BingoLeftSection({
               </>
             )}
 
-            <PanelHelp>
-              상대방도 같은 칸에서 내 코드 {myCode}를 입력하면 양쪽 빙고 칸이
-              동시에 완료됩니다.
-            </PanelHelp>
-            <PanelNote>
-              오입력 횟수 제한 없음 · 대기 상태는 48시간 후 자동 만료
-            </PanelNote>
+            {!isSelectedCompleted && (
+              <>
+                <PanelHelp>
+                  상대방도 같은 칸에서 내 코드 {myCode}를 입력하면 양쪽 빙고 칸이
+                  동시에 완료됩니다.
+                </PanelHelp>
+                <PanelNote>
+                  오입력 횟수 제한 없음 · 대기 상태는 48시간 후 자동 만료
+                </PanelNote>
+              </>
+            )}
           </CodePanel>
         </>
       )}
@@ -718,6 +734,28 @@ const CodeInput = styled.input`
 
   &:focus {
     border-color: var(--orange);
+  }
+`;
+
+const CompletedNotice = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.1rem;
+  border: 1px solid #4c4a47;
+  border-radius: 0.65rem;
+  background: #2d2c29;
+  color: var(--white);
+  font-family: Pretendard, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.55;
+  word-break: keep-all;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--orange);
+    font-size: 1.5rem;
   }
 `;
 
