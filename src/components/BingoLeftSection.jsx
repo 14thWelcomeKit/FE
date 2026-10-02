@@ -72,12 +72,15 @@ export default function BingoLeftSection({
   cells,
   onVerify,
   isVerifying,
+  onCancel,
+  isCancelling,
   queryError,
   onRetry,
 }) {
   const [selectedCellId, setSelectedCellId] = useState(null);
   const [partnerCode, setPartnerCode] = useState("");
   const [inputError, setInputError] = useState("");
+  const [cancelError, setCancelError] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
   const missions = cells.map((cell) => ({
@@ -96,6 +99,7 @@ export default function BingoLeftSection({
   );
   const selectedState = selectedMission ? selectedMission : null;
   const isSelectedCompleted = selectedState?.status === "COMPLETED";
+  const isBusy = isVerifying || isCancelling;
 
   useEffect(() => {
     if (
@@ -118,17 +122,19 @@ export default function BingoLeftSection({
       : null;
 
   const openCodePanel = (mission) => {
-    if (isVerifying) return;
+    if (isBusy) return;
     setSelectedCellId(mission.id);
     setPartnerCode("");
     setInputError("");
+    setCancelError("");
   };
 
   const closeCodePanel = () => {
-    if (isVerifying) return;
+    if (isBusy) return;
     setSelectedCellId(null);
     setPartnerCode("");
     setInputError("");
+    setCancelError("");
   };
 
   const handleCodeChange = (event) => {
@@ -138,7 +144,8 @@ export default function BingoLeftSection({
   };
 
   const handleMatchRequest = async () => {
-    if (!selectedMission || isVerifying || isSelectedCompleted) return;
+    if (!selectedMission || isBusy || isSelectedCompleted) return;
+    setCancelError("");
     if (!/^\d{4}$/.test(partnerCode)) {
       setInputError("상대방의 4자리 코드를 입력해주세요.");
       return;
@@ -163,6 +170,25 @@ export default function BingoLeftSection({
             "인증 요청에 실패했습니다. 다시 시도해주세요.",
           ),
         );
+      }
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (selectedState?.status !== "PENDING" || isBusy) return;
+    setCancelError("");
+    try {
+      const result = await onCancel(selectedMission.id);
+      if (result?.status === "INCOMPLETE") {
+        setPartnerCode("");
+        setInputError("");
+      }
+    } catch (requestError) {
+      if (requestError.code !== "ERR_CANCELED") {
+        setCancelError(getApiErrorMessage(
+          requestError,
+          "인증 요청을 취소하지 못했습니다. 다시 시도해주세요.",
+        ));
       }
     }
   };
@@ -198,7 +224,7 @@ export default function BingoLeftSection({
         {queryError && (
           <div role="alert">
             <InputError>{queryError}</InputError>
-            <MatchButton type="button" onClick={onRetry} disabled={isVerifying}>
+            <MatchButton type="button" onClick={onRetry} disabled={isBusy}>
               다시 시도
             </MatchButton>
           </div>
@@ -234,7 +260,7 @@ export default function BingoLeftSection({
                 $difficulty={mission.difficulty}
                 $status={state.status}
                 $selected={isSelected}
-                disabled={isVerifying}
+                disabled={isBusy}
                 onClick={() => openCodePanel(mission)}
                 aria-label={`${mission.mission}, ${DIFFICULTY[mission.difficulty].shortLabel}`}
               >
@@ -285,6 +311,7 @@ export default function BingoLeftSection({
               type="button"
               aria-label="닫기"
               onClick={closeCodePanel}
+              disabled={isBusy}
             >
               <IoClose />
             </PanelClose>
@@ -306,21 +333,26 @@ export default function BingoLeftSection({
                 <span>이미 완료한 미션입니다.</span>
               </CompletedNotice>
             ) : selectedState?.status === "PENDING" ? (
-              <PendingBox>
-                <PendingLabel>대기 상태</PendingLabel>
-                {selectedRemainingSeconds !== null && (
-                  <PendingTime>
-                    {formatRemainingTime(selectedRemainingSeconds)}
-                  </PendingTime>
-                )}
-                <PendingDescription>
-                  상대방이 같은 칸에서 내 코드를 입력하기를 기다리고 있어요.
-                </PendingDescription>
-              </PendingBox>
+              <>
+                <PendingBox>
+                  <PendingLabel>대기 상태</PendingLabel>
+                  {selectedRemainingSeconds !== null && (
+                    <PendingTime>
+                      {formatRemainingTime(selectedRemainingSeconds)}
+                    </PendingTime>
+                  )}
+                  <PendingDescription>
+                    상대방이 같은 칸에서 내 코드를 입력하기를 기다리고 있어요.
+                  </PendingDescription>
+                </PendingBox>
+                <MatchButton type="button" onClick={handleCancelRequest} disabled={isBusy}>
+                  {isCancelling ? "취소 중…" : "인증 요청 취소"}
+                </MatchButton>
+              </>
             ) : (
               <>
                 <CodeInput
-                  disabled={isVerifying}
+                  disabled={isBusy}
                   value={partnerCode}
                   onChange={handleCodeChange}
                   inputMode="numeric"
@@ -336,12 +368,14 @@ export default function BingoLeftSection({
                 <MatchButton
                   type="button"
                   onClick={handleMatchRequest}
-                  disabled={isVerifying}
+                  disabled={isBusy}
                 >
                   {isVerifying ? "요청 중..." : "매칭 요청"}
                 </MatchButton>
               </>
             )}
+
+            {cancelError && <InputError role="alert">{cancelError}</InputError>}
 
             {!isSelectedCompleted && (
               <>
