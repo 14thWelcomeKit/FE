@@ -4,6 +4,13 @@ import { IoCheckmarkCircle, IoClose } from "react-icons/io5";
 import { getApiErrorMessage } from "../axiosInstance";
 import breakpoints from "./breakpoints";
 
+const formatMatchedPartner = (cell) => {
+  if (!cell?.matchedWithName) return "";
+  return cell.matchedWithCode
+    ? `${cell.matchedWithName}(${cell.matchedWithCode})`
+    : cell.matchedWithName;
+};
+
 const HOUR_IN_SECONDS = 60 * 60;
 
 // (키는 백엔드 missionContent와 글자 단위로 정확히 일치해야 함)
@@ -91,6 +98,7 @@ export default function BingoLeftSection({
       1,
     status: cell.status,
     matchedWithName: cell.matchedWithName,
+    matchedWithCode: cell.matchedWithCode,
     expiresAt: Date.parse(cell.expiresAt),
   }));
 
@@ -235,7 +243,7 @@ export default function BingoLeftSection({
             <CodeValue>{myCode}</CodeValue>
           </CodeBlock>
           <CodeGuide>
-            상대방도 같은 빙고 칸을 선택한 뒤 내 코드를 입력해야 완료돼요.
+            상대방도 같은 미션 칸을 선택한 뒤 내 코드를 입력해야 완료돼요.
           </CodeGuide>
         </MyCodeCard>
 
@@ -273,7 +281,7 @@ export default function BingoLeftSection({
                   <CellStatusText>
                     {state.matchedWithName && (
                       <>
-                        {state.matchedWithName}님과
+                        {formatMatchedPartner(state)}님과
                         <br />
                       </>
                     )}
@@ -322,9 +330,13 @@ export default function BingoLeftSection({
             <PanelTitle id="code-panel-title">
               {isSelectedCompleted
                 ? selectedState.matchedWithName
-                  ? `${selectedState.matchedWithName}님과 완료`
+                  ? `${formatMatchedPartner(selectedState)}님과 완료`
                   : "미션 완료"
-                : "상대방 코드 입력"}
+                : selectedState?.status === "PENDING"
+                  ? selectedState.matchedWithName
+                    ? `${formatMatchedPartner(selectedState)}님에게 요청을 보냈습니다`
+                    : "상대방에게 요청을 보냈습니다"
+                  : "상대방 코드 입력"}
             </PanelTitle>
 
             {isSelectedCompleted ? (
@@ -380,7 +392,7 @@ export default function BingoLeftSection({
             {!isSelectedCompleted && (
               <>
                 <PanelHelp>
-                  상대방도 같은 칸에서 내 코드 {myCode}를 입력하면 양쪽 빙고 칸이
+                  상대방도 같은 칸에서 내 코드 {myCode}를 입력하면 양쪽 미션 칸이
                   동시에 완료됩니다.
                 </PanelHelp>
                 <PanelNote>
