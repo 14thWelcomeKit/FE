@@ -79,7 +79,9 @@ export default function Bingo() {
           Number.isInteger(cell?.cellId) && cell.cellId >= 1 && cell.cellId <= 25 &&
           typeof cell.missionContent === "string" &&
           ["INCOMPLETE", "PENDING", "COMPLETED"].includes(cell.status) &&
-          (cell.matchedWithName === null || typeof cell.matchedWithName === "string")
+          (cell.matchedWithName === null || typeof cell.matchedWithName === "string") &&
+          (cell.matchedWithCode === null ||
+            (typeof cell.matchedWithCode === "string" && /^\d{4}$/.test(cell.matchedWithCode)))
         )
       ) {
         throw new Error("Invalid bingo response");

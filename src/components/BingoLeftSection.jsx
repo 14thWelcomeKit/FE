@@ -4,6 +4,13 @@ import { IoCheckmarkCircle, IoClose } from "react-icons/io5";
 import { getApiErrorMessage } from "../axiosInstance";
 import breakpoints from "./breakpoints";
 
+const formatMatchedPartner = (cell) => {
+  if (!cell?.matchedWithName) return "";
+  return cell.matchedWithCode
+    ? `${cell.matchedWithName}(${cell.matchedWithCode})`
+    : cell.matchedWithName;
+};
+
 const HOUR_IN_SECONDS = 60 * 60;
 
 // (키는 백엔드 missionContent와 글자 단위로 정확히 일치해야 함)
@@ -91,6 +98,7 @@ export default function BingoLeftSection({
       1,
     status: cell.status,
     matchedWithName: cell.matchedWithName,
+    matchedWithCode: cell.matchedWithCode,
     expiresAt: Date.parse(cell.expiresAt),
   }));
 
@@ -273,7 +281,7 @@ export default function BingoLeftSection({
                   <CellStatusText>
                     {state.matchedWithName && (
                       <>
-                        {state.matchedWithName}님과
+                        {formatMatchedPartner(state)}님과
                         <br />
                       </>
                     )}
@@ -322,10 +330,12 @@ export default function BingoLeftSection({
             <PanelTitle id="code-panel-title">
               {isSelectedCompleted
                 ? selectedState.matchedWithName
-                  ? `${selectedState.matchedWithName}님과 완료`
+                  ? `${formatMatchedPartner(selectedState)}님과 완료`
                   : "미션 완료"
                 : selectedState?.status === "PENDING"
-                  ? "상대방에게 요청을 보냈습니다"
+                  ? selectedState.matchedWithName
+                    ? `${formatMatchedPartner(selectedState)}님에게 요청을 보냈습니다`
+                    : "상대방에게 요청을 보냈습니다"
                   : "상대방 코드 입력"}
             </PanelTitle>
 
