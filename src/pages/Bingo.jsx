@@ -201,6 +201,7 @@ export default function Bingo() {
           ...cell,
           status: result.status,
           matchedWithName: result.matchedWithName,
+          matchedWithCode: null,
           expiresAt: result.expiresAt,
         } : cell),
       }));
