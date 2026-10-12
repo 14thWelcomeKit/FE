@@ -150,6 +150,8 @@ export default function Bingo() {
       if (controller.signal.aborted) return;
       const result = response.data?.data;
       if (result?.cellId !== cellId || !["PENDING", "COMPLETED"].includes(result?.status) ||
+          typeof result.matchedWithName !== "string" ||
+          typeof result.matchedWithCode !== "string" || !/^\d{4}$/.test(result.matchedWithCode) ||
           (result.status === "PENDING" && !Number.isFinite(Date.parse(result.expiresAt)))) {
         throw new Error("Invalid verification response");
       }
@@ -159,7 +161,8 @@ export default function Bingo() {
         cells: previous.cells.map((cell) => cell.cellId === cellId ? {
           ...cell,
           status: result.status,
-          matchedWithName: result.status === "COMPLETED" ? result.matchedWithName : null,
+          matchedWithName: result.matchedWithName,
+          matchedWithCode: result.matchedWithCode,
           expiresAt: result.status === "PENDING" ? result.expiresAt : undefined,
         } : cell),
       }));
